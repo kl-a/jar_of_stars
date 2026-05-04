@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Jar of Stars ✦</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a2e;
+      overflow: hidden;
+    }
+
+    #root { width: 100%; height: 100%; }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #16213e; }
+    ::-webkit-scrollbar-thumb { background: #7a6fa0; border-radius: 3px; }
+
+    /* ── Animations ────────────────────────────────────────────────── */
+
+    @keyframes jarWobble {
+      0%   { transform: rotate(0deg); }
+      15%  { transform: rotate(-2deg); }
+      30%  { transform: rotate(2deg); }
+      45%  { transform: rotate(-1deg); }
+      60%  { transform: rotate(1deg); }
+      75%  { transform: rotate(-0.5deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes streamerRise {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      80%  { opacity: 0.8; }
+      100% { transform: translateY(-320px) rotate(var(--drift, 30deg)); opacity: 0; }
+    }
+
+    @keyframes heartFloat {
+      0%   { transform: translate(0,0) scale(0); opacity: 1; }
+      60%  { transform: translate(var(--hx,0px), -24px) scale(1.2); opacity: 1; }
+      100% { transform: translate(var(--hx,0px), -40px) scale(0.8); opacity: 0; }
+    }
+
+    @keyframes foilHue {
+      0%   { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    @keyframes twinkle {
+      0%   { opacity: 0.2; }
+      100% { opacity: 0.9; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes starSparkle {
+      0%   { transform: scale(1) rotate(0deg); }
+      25%  { transform: scale(1.2) rotate(10deg); }
+      50%  { transform: scale(0.8) rotate(-5deg); }
+      75%  { transform: scale(1.1) rotate(5deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    /* Prevent text selection on game-style buttons */
+    button { user-select: none; -webkit-user-select: none; }
+
+    /* Date input styling */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.6) sepia(1) hue-rotate(200deg);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Plain JS utilities and store (no JSX, load first) -->
+  <script src="src/utils/uuid.js"></script>
+  <script src="src/utils/fileIO.js"></script>
+  <script src="src/utils/starEngine.js"></script>
+  <script src="src/store/store.js"></script>
+
+  <!-- React/JSX components in dependency order -->
+
+  <!-- Primitive UI -->
+  <script type="text/babel" src="src/components/UI/PixelStar.jsx"></script>
+  <script type="text/babel" src="src/components/UI/PixelButton.jsx"></script>
+  <script type="text/babel" src="src/components/UI/Tag.jsx"></script>
+  <script type="text/babel" src="src/components/UI/ModalOverlay.jsx"></script>
+  <script type="text/babel" src="src/components/UI/AvatarPicker.jsx"></script>
+  <script type="text/babel" src="src/components/UI/TagInput.jsx"></script>
+  <script type="text/babel" src="src/components/UI/PersonInput.jsx"></script>
+  <script type="text/babel" src="src/components/UI/ExportReminderModal.jsx"></script>
+
+  <!-- Jar -->
+  <script type="text/babel" src="src/components/Jar/JarSVG.jsx"></script>
+
+  <!-- Star pull decorations -->
+  <script type="text/babel" src="src/components/StarPull/ScrollSVG.jsx"></script>
+  <script type="text/babel" src="src/components/StarPull/TrumpeterSVG.jsx"></script>
+  <script type="text/babel" src="src/components/StarPull/Streamers.jsx"></script>
+
+  <!-- Stars -->
+  <script type="text/babel" src="src/components/Stars/StarZipAnimation.jsx"></script>
+  <script type="text/babel" src="src/components/Stars/StarCard.jsx"></script>
+  <script type="text/babel" src="src/components/Stars/AddStarModal.jsx"></script>
+  <script type="text/babel" src="src/components/Stars/StarExpandModal.jsx"></script>
+
+  <!-- Star pull reveal (depends on ScrollSVG, TrumpeterSVG, Streamers) -->
+  <script type="text/babel" src="src/components/StarPull/PullReveal.jsx"></script>
+
+  <!-- People -->
+  <script type="text/babel" src="src/components/People/PersonCard.jsx"></script>
+  <script type="text/babel" src="src/components/People/PersonProfile.jsx"></script>
+
+  <!-- Onboarding -->
+  <script type="text/babel" src="src/components/Onboarding/WelcomeFlow.jsx"></script>
+
+  <!-- Pages -->
+  <script type="text/babel" src="src/pages/HomePage.jsx"></script>
+  <script type="text/babel" src="src/pages/CollectionPage.jsx"></script>
+  <script type="text/babel" src="src/pages/PeoplePage.jsx"></script>
+  <script type="text/babel" src="src/pages/SettingsPage.jsx"></script>
+
+  <!-- App entry point -->
+  <script type="text/babel" src="src/App.jsx"></script>
+</body>
+</html>
