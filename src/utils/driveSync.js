@@ -104,6 +104,7 @@
     }
     _token       = response.access_token;
     _tokenExpiry = Date.now() + (response.expires_in - 60) * 1000;
+    localStorage.setItem('josConnected', '1');
 
     _setStatus('loading');
     try {
@@ -137,18 +138,32 @@
 
     init() {
       if (!_configured) return;
-      _tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id:      CLIENT_ID,
-        scope:          SCOPE,
-        callback:       _onToken,
-        error_callback: () => _setStatus('signed-out'),
-      });
-      // Silent attempt on load — shows no popup if user hasn't consented yet
-      _tokenClient.requestAccessToken({ prompt: '' });
+      if (!window.google?.accounts?.oauth2) {
+        console.warn('[DriveSync] GIS library not available');
+        return;
+      }
+      try {
+        _tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id:      CLIENT_ID,
+          scope:          SCOPE,
+          callback:       _onToken,
+          error_callback: () => {
+            localStorage.removeItem('josConnected');
+            _setStatus('signed-out');
+          },
+        });
+        // Silent re-auth only if user explicitly connected in a previous session
+        if (localStorage.getItem('josConnected')) {
+          _tokenClient.requestAccessToken({ prompt: '' });
+        }
+      } catch (e) {
+        console.error('[DriveSync] init error', e);
+      }
     },
 
     // Call directly from button onClick — synchronous so iOS Safari allows the popup
     signIn() {
+      if (!_tokenClient) return;
       _setStatus('signing-in');
       _tokenClient.requestAccessToken({ prompt: 'select_account' });
     },
@@ -159,6 +174,7 @@
       _tokenExpiry = 0;
       _fileId      = null;
       _userInfo    = null;
+      localStorage.removeItem('josConnected');
       _setStatus('signed-out');
     },
 

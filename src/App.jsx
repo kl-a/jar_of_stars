@@ -84,8 +84,10 @@ function App() {
 
   React.useEffect(() => window.store.subscribe(refreshStore), []);
 
-  // Initialise Google Drive sync (no-op if CLIENT_ID not configured)
-  React.useEffect(() => { window.driveSync?.init(); }, []);
+  // Initialise Google Drive sync (no-op if CLIENT_ID not configured or GIS unavailable)
+  React.useEffect(() => {
+    try { window.driveSync?.init(); } catch (e) { console.error('[DriveSync]', e); }
+  }, []);
 
   // Clear new-person badges shortly after load
   React.useEffect(() => {
