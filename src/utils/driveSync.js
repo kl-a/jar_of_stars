@@ -123,6 +123,20 @@
     }
   }
 
+  // Creates the token client on first use — ensures GIS is fully ready
+  function _ensureClient() {
+    if (_tokenClient) return;
+    _tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id:      CLIENT_ID,
+      scope:          SCOPE,
+      callback:       _onToken,
+      error_callback: () => {
+        localStorage.removeItem('josConnected');
+        _setStatus('signed-out');
+      },
+    });
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────────
 
   const driveSync = {
@@ -137,35 +151,31 @@
     },
 
     init() {
+      // Intentionally lightweight — token client is created lazily in signIn()
+      // so GIS is guaranteed to be fully ready by the time it's needed.
       if (!_configured) return;
-      if (!window.google?.accounts?.oauth2) {
-        console.warn('[DriveSync] GIS library not available');
-        return;
-      }
-      try {
-        _tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id:      CLIENT_ID,
-          scope:          SCOPE,
-          callback:       _onToken,
-          error_callback: () => {
-            localStorage.removeItem('josConnected');
-            _setStatus('signed-out');
-          },
-        });
-        // Silent re-auth only if user explicitly connected in a previous session
-        if (localStorage.getItem('josConnected')) {
+      // Silent re-auth for returning users (GIS is always loaded by window.load)
+      window.addEventListener('load', () => {
+        if (!localStorage.getItem('josConnected')) return;
+        if (!window.google?.accounts?.oauth2) return;
+        try {
+          _ensureClient();
           _tokenClient.requestAccessToken({ prompt: '' });
-        }
-      } catch (e) {
-        console.error('[DriveSync] init error', e);
-      }
+        } catch (e) { console.error('[DriveSync] silent re-auth error', e); }
+      });
     },
 
     // Call directly from button onClick — synchronous so iOS Safari allows the popup
     signIn() {
-      if (!_tokenClient) return;
+      if (!_configured) return;
       _setStatus('signing-in');
-      _tokenClient.requestAccessToken({ prompt: 'select_account' });
+      try {
+        _ensureClient();
+        _tokenClient.requestAccessToken({ prompt: 'select_account' });
+      } catch (e) {
+        console.error('[DriveSync] signIn error', e);
+        _setStatus('error');
+      }
     },
 
     signOut() {
