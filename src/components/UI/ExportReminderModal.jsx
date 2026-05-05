@@ -2,7 +2,7 @@
 // Shown once per session when the user has stars but hasn't been reminded yet.
 // Next.js migration: export function ExportReminderModal(...)
 
-function ExportReminderModal({ onClose }) {
+function ExportReminderModal({ onClose, onNavigateToSettings }) {
   const [visible, setVisible] = React.useState(false);
   const [downloaded, setDownloaded] = React.useState(false);
 
@@ -62,7 +62,8 @@ function ExportReminderModal({ onClose }) {
               color:      '#9b89c4',
               lineHeight:  2,
             }}>
-              Memories are stored locally in your browser. Download a backup to keep them safe.
+              Memories are stored locally in your browser. Download a backup to keep them safe —
+              or connect your Google account in Settings to sync automatically across all your devices.
             </div>
           </div>
           <button
@@ -79,14 +80,19 @@ function ExportReminderModal({ onClose }) {
             }}
           >×</button>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <PixelButton
-            onClick={handleDownload}
-            color="#ffe066" shadowColor="#c9a84c"
-            small
-          >
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <PixelButton onClick={handleDownload} color="#ffe066" shadowColor="#c9a84c" small>
             {downloaded ? '✓ Saved!' : '↓ Download backup'}
           </PixelButton>
+          {window.driveSync?.isConfigured() && !window.driveSync?.isSignedIn() && (
+            <PixelButton
+              onClick={onNavigateToSettings}
+              color="#c4d4f8" shadowColor="#7a9fd4"
+              small
+            >
+              ☁ Connect Drive
+            </PixelButton>
+          )}
           <PixelButton
             onClick={handleDismiss}
             color="#16213e" shadowColor="#2d2b3d" textColor="#9b89c4"

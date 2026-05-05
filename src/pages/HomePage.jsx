@@ -141,41 +141,73 @@ function StarfieldCanvas() {
   );
 }
 
-function FloatingStarsInJar({ count, jarW, jarH }) {
-  const numStars = Math.min(Math.max(count, 0), 3);
-  const stars = React.useMemo(() => Array.from({ length: numStars }, (_, i) => ({
-    id:    i,
-    xPct:  0.25 + Math.random() * 0.5,
-    yPct:  0.15 + (i / Math.max(numStars, 1)) * 0.35,
-    phase: (i / numStars) * Math.PI * 2,
-    speed: 0.6 + Math.random() * 0.5,
-    size:  10 + Math.floor(Math.random() * 2) * 2,
-  })), [numStars]);
+// Jar body proportions — must mirror JarSVG constants
+const _BODY_TOP_FRAC    = 0.32;
+const _BODY_BOTTOM_FRAC = 0.89;
 
-  const [tick, setTick] = React.useState(0);
+// Pre-computed slots: 10 stable random positions, konpeito colours
+const _FLOAT_SLOTS = Array.from({ length: 10 }, (_, i) => {
+  const sc = getStarColor(`jar_float_${i}`);
+  return {
+    id:      i,
+    xPct:    0.18 + Math.random() * 0.64,
+    yInZone: Math.random(),
+    phase:   (i / 10) * Math.PI * 2,
+    speed:   0.5 + Math.random() * 0.6,
+    size:    8 + (i % 3) * 2,
+    color:   sc.color,
+    shadow:  sc.shadow,
+  };
+});
+
+function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH }) {
+  const [tick,     setTick]     = React.useState(0);
+  const [glowingId, setGlowingId] = React.useState(-1);
+
   React.useEffect(() => {
-    if (numStars === 0) return;
+    if (floatingCount === 0) return;
     const id = setInterval(() => setTick(t => t + 1), 40);
     return () => clearInterval(id);
-  }, [numStars]);
+  }, [floatingCount]);
 
-  if (numStars === 0) return null;
+  if (floatingCount === 0) return null;
+
+  const liquidSurfFrac = _BODY_BOTTOM_FRAC - fillFraction * (_BODY_BOTTOM_FRAC - _BODY_TOP_FRAC);
+  const zoneBottom = Math.max(_BODY_TOP_FRAC + 0.06, liquidSurfFrac - 0.02);
+  const zoneTop    = Math.max(_BODY_TOP_FRAC + 0.02, zoneBottom - 0.22);
+  const zoneH      = Math.max(0.06, zoneBottom - zoneTop);
+
+  function handleStarClick(e, id) {
+    e.stopPropagation();
+    setGlowingId(id);
+    setTimeout(() => setGlowingId(g => g === id ? -1 : g), 700);
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-      {stars.map(s => {
-        const bobY = Math.sin(tick * 0.05 * s.speed + s.phase) * 7;
-        const x    = jarW * s.xPct - s.size / 2;
-        const y    = jarH * 0.15 + jarH * s.yPct + bobY;
+      {_FLOAT_SLOTS.slice(0, floatingCount).map(s => {
+        const bobY    = Math.sin(tick * 0.05 * s.speed + s.phase) * 6;
+        const x       = jarW * s.xPct - s.size / 2;
+        const y       = jarH * (zoneTop + s.yInZone * zoneH) + bobY;
+        const glowing = glowingId === s.id;
         return (
-          <div key={s.id} style={{
-            position: 'absolute',
-            left:      x,
-            top:       y,
-            filter:   'drop-shadow(0 0 5px #ffe066)',
-            zIndex:    3,
-          }}>
-            <PixelStar size={s.size} color="#ffe066" shadowColor="#c9a84c"/>
+          <div
+            key={s.id}
+            onClick={e => handleStarClick(e, s.id)}
+            style={{
+              position:      'absolute',
+              left:           x,
+              top:            y,
+              filter:         glowing
+                ? `drop-shadow(0 0 8px ${s.color}) drop-shadow(0 0 16px ${s.color})`
+                : `drop-shadow(0 0 4px ${s.color})`,
+              transition:    'filter 0.15s ease',
+              zIndex:         3,
+              cursor:        'pointer',
+              pointerEvents: 'all',
+            }}
+          >
+            <PixelStar size={glowing ? s.size + 2 : s.size} color={s.color} shadowColor={s.shadow}/>
           </div>
         );
       })}
@@ -206,8 +238,9 @@ function HomePage({ onNavigate, stars, people }) {
   const [showZip,     setShowZip]    = React.useState(false);
   const [jarWobble,   setJarWobble]  = React.useState(false);
 
-  const count     = stars.length;
-  const fillLevel = count === 0 ? 0 : count < 20 ? 1 : count < 40 ? 2 : count < 60 ? 3 : count < 80 ? 4 : 5;
+  const count         = stars.length;
+  const fillFraction  = Math.min(count / 120, 1);
+  const floatingCount = count === 0 ? 0 : (count % 10 === 0 ? 10 : count % 10);
 
   function handlePull(favouritesOnly) {
     const star = window.store.pullRandomStar(favouritesOnly);
@@ -250,21 +283,34 @@ function HomePage({ onNavigate, stars, people }) {
       </div>
 
       {/* Jar */}
+      {/* Outer container — sets the size, does not transform */}
       <div style={{
-        position:       'relative',
-        zIndex:          2,
-        marginTop:       isMobile ? 10 : 16,
-        width:           jarW,
-        height:          jarH,
-        animation:       jarWobble ? 'jarWobble 0.5s ease' : 'none',
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'center',
+        position: 'relative',
+        zIndex:    2,
+        marginTop: isMobile ? 10 : 16,
+        width:     jarW,
+        height:    jarH,
       }}>
-        <JarGlowPulse>
-          {pulse => <JarSVG fillLevel={fillLevel} starCount={count} glowPulse={pulse} width={jarW} height={jarH}/>}
-        </JarGlowPulse>
-        <FloatingStarsInJar count={fillLevel} jarW={jarW} jarH={jarH}/>
+        {/* Inner jar layer — wobbles on click */}
+        <div
+          onClick={() => { setJarWobble(true); setTimeout(() => setJarWobble(false), 600); }}
+          style={{
+            position:       'absolute',
+            width:          '100%',
+            height:         '100%',
+            animation:       jarWobble ? 'jarWobble 0.5s ease' : 'none',
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            cursor:         'pointer',
+          }}
+        >
+          <JarGlowPulse>
+            {pulse => <JarSVG fillFraction={fillFraction} starCount={count} glowPulse={pulse} width={jarW} height={jarH}/>}
+          </JarGlowPulse>
+        </div>
+        {/* Stars sit in their own layer — unaffected by jar rotation */}
+        <FloatingStarsInJar floatingCount={floatingCount} fillFraction={fillFraction} jarW={jarW} jarH={jarH}/>
       </div>
 
       {/* Buttons */}

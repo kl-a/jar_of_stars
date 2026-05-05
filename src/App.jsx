@@ -159,7 +159,10 @@ function App() {
       )}
 
       {showExportReminder && (
-        <ExportReminderModal onClose={() => setShowExportReminder(false)}/>
+        <ExportReminderModal
+          onClose={() => setShowExportReminder(false)}
+          onNavigateToSettings={() => { setPage('settings'); setShowExportReminder(false); }}
+        />
       )}
     </div>
   );

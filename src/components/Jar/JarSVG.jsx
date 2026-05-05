@@ -2,7 +2,7 @@
 // data-jar attribute is used by StarZipAnimation to locate the jar for targeting.
 // Next.js migration: export function JarSVG(...)
 
-function JarSVG({ fillLevel = 0, starCount = 0, glowPulse = 1, width = 180, height = 260 }) {
+function JarSVG({ fillFraction = 0, starCount = 0, glowPulse = 1, width = 180, height = 260 }) {
   const fw = width;
   const fh = height;
   const cx = fw / 2;
@@ -54,10 +54,20 @@ function JarSVG({ fillLevel = 0, starCount = 0, glowPulse = 1, width = 180, heig
     `Z`,
   ].join(' ');
 
-  // Fill level: clipped rect from bottom up
-  const maxFillH = bodyH * 0.88;
-  const fillH    = fillLevel > 0 ? (fillLevel / 5) * maxFillH : 0;
-  const fillY    = bodyBottom - fillH;
+  // Liquid fill: grows from 0 → full body height as fillFraction goes 0 → 1
+  const liquidH = bodyH * Math.min(fillFraction, 1);
+  const liquidY = bodyBottom - liquidH;
+
+  const _SPARKLES = [
+    { xf: 0.22, yf: 0.22, dur: '1.3s', delay: '0.0s' },
+    { xf: 0.62, yf: 0.52, dur: '0.9s', delay: '0.5s' },
+    { xf: 0.76, yf: 0.18, dur: '1.8s', delay: '0.9s' },
+    { xf: 0.38, yf: 0.68, dur: '1.1s', delay: '0.3s' },
+    { xf: 0.82, yf: 0.40, dur: '0.8s', delay: '1.2s' },
+    { xf: 0.15, yf: 0.58, dur: '1.5s', delay: '0.7s' },
+    { xf: 0.50, yf: 0.82, dur: '1.0s', delay: '0.1s' },
+    { xf: 0.68, yf: 0.30, dur: '1.4s', delay: '0.6s' },
+  ];
 
   return (
     <svg
@@ -75,6 +85,11 @@ function JarSVG({ fillLevel = 0, starCount = 0, glowPulse = 1, width = 180, heig
           <feGaussianBlur stdDeviation="6" result="blur"/>
           <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
+        <linearGradient id="liquidGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#fff4a0" stopOpacity="0.78"/>
+          <stop offset="45%"  stopColor="#ffe066" stopOpacity="0.82"/>
+          <stop offset="100%" stopColor="#c9a84c" stopOpacity="0.90"/>
+        </linearGradient>
         <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%"   stopColor="#9b89c4" stopOpacity="0.15"/>
           <stop offset="30%"  stopColor="#c9b8f0" stopOpacity="0.06"/>
@@ -128,14 +143,39 @@ function JarSVG({ fillLevel = 0, starCount = 0, glowPulse = 1, width = 180, heig
       {/* Glass gradient overlay */}
       <path d={jarOutline} fill="url(#glassGrad)"/>
 
-      {/* Star-fill glow from bottom */}
-      {fillLevel > 0 && (
+      {/* Liquid fill */}
+      {fillFraction > 0 && (
         <g clipPath="url(#jarClip)">
-          <rect x={bodyX} y={fillY} width={bodyW} height={fillH}
-            fill="#ffe066" opacity={Math.min(0.20 * glowPulse, 0.38)}/>
+          {/* Liquid body */}
+          <rect x={bodyX} y={liquidY} width={bodyW} height={liquidH} fill="url(#liquidGrad)"/>
+          {/* Inner glow pulse */}
+          <rect x={bodyX + bodyW * 0.1} y={liquidY + liquidH * 0.25}
+            width={bodyW * 0.8} height={liquidH * 0.5}
+            fill="#ffe066" opacity={0.14 * glowPulse}/>
+          {/* Sparkles — twinkling pixels inside the liquid */}
+          {liquidH > 6 && _SPARKLES.map((sp, i) => {
+            const sy = liquidY + liquidH * sp.yf;
+            if (sy > bodyBottom - 3) return null;
+            return (
+              <rect key={i}
+                x={bodyX + bodyW * sp.xf} y={sy}
+                width={2} height={2}
+                fill="#fdfcff"
+                style={{ animation: `twinkle ${sp.dur} ${sp.delay} alternate infinite ease-in-out` }}
+              />
+            );
+          })}
           {/* Surface shimmer line */}
-          <rect x={bodyX + 4} y={fillY} width={bodyW - 8} height={4}
-            fill="#fdfcff" opacity="0.18"/>
+          <rect x={bodyX + 4} y={liquidY} width={bodyW - 8} height={3}
+            fill="#fdfcff" opacity="0.72"/>
+          {/* Small surface highlight accents */}
+          <rect x={bodyX + bodyW * 0.22} y={liquidY + 1} width={6} height={2}
+            fill="#fdfcff" opacity="0.45"/>
+          <rect x={bodyX + bodyW * 0.62} y={liquidY + 2} width={4} height={2}
+            fill="#fdfcff" opacity="0.30"/>
+          {/* Glow halo just above the liquid surface */}
+          <rect x={bodyX} y={Math.max(liquidY - 14, bodyY)} width={bodyW} height={16}
+            fill="#ffe066" opacity={0.07 * glowPulse}/>
         </g>
       )}
 
