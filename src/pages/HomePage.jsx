@@ -1,14 +1,108 @@
-// Home page — starfield canvas, jar scene, pull/add buttons.
+// Home page — sky canvas, jar scene, pull/add buttons.
 // Next.js migration: export default function HomePage(...)
 
 const SHOOTING_STAR_INTERVAL_MIN = 4000;
 const SHOOTING_STAR_INTERVAL_MAX = 9000;
 
+// ── Time-of-day helpers ───────────────────────────────────────────────────────
+
+function _skyPeriod() {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  if (h >= 4  && h < 9)  return 'dawn';
+  if (h >= 9  && h < 16) return 'day';
+  if (h >= 16 && h < 18) return 'golden';
+  return 'night';
+}
+
+function _skyGradient(ctx, w, h, stops) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  stops.forEach(([pos, col]) => g.addColorStop(pos, col));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+// Cloud puff shape templates — relative (dx, dy, r) offsets from cloud centre
+const _CLOUD_PUFFS = [
+  [{ dx:0,dy:0,r:42 },{ dx:-50,dy:14,r:32 },{ dx:50,dy:14,r:32 },{ dx:-30,dy:-18,r:28 },{ dx:30,dy:-18,r:28 },{ dx:0,dy:-32,r:24 },{ dx:-72,dy:22,r:26 },{ dx:72,dy:22,r:26 }],
+  [{ dx:0,dy:0,r:36 },{ dx:-42,dy:12,r:28 },{ dx:42,dy:12,r:28 },{ dx:-24,dy:-14,r:24 },{ dx:24,dy:-14,r:24 },{ dx:0,dy:-26,r:20 },{ dx:-60,dy:20,r:22 }],
+  [{ dx:0,dy:0,r:52 },{ dx:-58,dy:16,r:40 },{ dx:58,dy:16,r:40 },{ dx:-34,dy:-24,r:35 },{ dx:34,dy:-24,r:35 },{ dx:0,dy:-44,r:30 },{ dx:-86,dy:26,r:32 },{ dx:86,dy:26,r:32 },{ dx:-12,dy:-54,r:22 },{ dx:18,dy:-50,r:20 }],
+];
+
+// ── Southern hemisphere constellations (visible from Sydney) ──────────────────
+const _CONSTELLATIONS = [
+  { // Crux — the Southern Cross
+    stars: [
+      { xf: 0.762, yf: 0.072, r: 2.0, color: 'rgba(255,210,200,0.90)' }, // Gacrux — reddish
+      { xf: 0.762, yf: 0.218, r: 2.6, color: 'rgba(210,225,255,0.95)' }, // Acrux — blue-white
+      { xf: 0.698, yf: 0.145, r: 2.3, color: 'rgba(210,225,255,0.90)' }, // Mimosa
+      { xf: 0.826, yf: 0.145, r: 1.8, color: 'rgba(253,252,255,0.85)' }, // δ Cru
+      { xf: 0.778, yf: 0.156, r: 1.3, color: 'rgba(253,252,255,0.72)' }, // ε Cru
+    ],
+    lines: [[0,1],[2,3]],
+  },
+  { // Centaurus — α & β Cen, the "pointers" to the Cross
+    stars: [
+      { xf: 0.603, yf: 0.105, r: 2.8, color: 'rgba(255,248,220,0.95)' }, // α Centauri
+      { xf: 0.640, yf: 0.192, r: 2.4, color: 'rgba(200,215,255,0.90)' }, // β Centauri (Hadar)
+    ],
+    lines: [[0,1]],
+  },
+  { // Scorpius — iconic S-curve with bright Antares
+    stars: [
+      { xf: 0.135, yf: 0.070, r: 1.7, color: 'rgba(253,252,255,0.80)' },
+      { xf: 0.158, yf: 0.098, r: 1.8, color: 'rgba(253,252,255,0.82)' },
+      { xf: 0.182, yf: 0.074, r: 1.5, color: 'rgba(253,252,255,0.78)' },
+      { xf: 0.162, yf: 0.150, r: 2.6, color: 'rgba(255,175,100,0.95)' }, // Antares — orange-red
+      { xf: 0.178, yf: 0.210, r: 1.7, color: 'rgba(253,252,255,0.80)' },
+      { xf: 0.200, yf: 0.265, r: 1.8, color: 'rgba(253,252,255,0.82)' },
+      { xf: 0.232, yf: 0.308, r: 2.0, color: 'rgba(253,252,255,0.85)' },
+      { xf: 0.270, yf: 0.330, r: 1.6, color: 'rgba(253,252,255,0.78)' },
+      { xf: 0.310, yf: 0.326, r: 1.7, color: 'rgba(253,252,255,0.80)' },
+      { xf: 0.345, yf: 0.298, r: 2.2, color: 'rgba(253,252,255,0.88)' }, // Shaula (λ Sco)
+      { xf: 0.364, yf: 0.264, r: 1.8, color: 'rgba(253,252,255,0.82)' },
+    ],
+    lines: [[0,1],[1,2],[1,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10]],
+  },
+  { // Canopus — 2nd brightest star in the sky (Carina)
+    stars: [{ xf: 0.882, yf: 0.084, r: 3.0, color: 'rgba(253,252,240,0.98)' }],
+    lines: [],
+  },
+];
+
+function _drawConstellations(ctx, w, h) {
+  ctx.lineWidth   = 0.8;
+  ctx.strokeStyle = 'rgba(180,170,220,0.18)';
+  _CONSTELLATIONS.forEach(con => {
+    con.lines.forEach(([a, b]) => {
+      ctx.beginPath();
+      ctx.moveTo(con.stars[a].xf * w, con.stars[a].yf * h);
+      ctx.lineTo(con.stars[b].xf * w, con.stars[b].yf * h);
+      ctx.stroke();
+    });
+    con.stars.forEach(s => {
+      const x = s.xf * w, y = s.yf * h;
+      if (s.r >= 2.0) {
+        ctx.globalAlpha = 0.13;
+        ctx.fillStyle   = '#d4d0ff';
+        ctx.beginPath();
+        ctx.arc(x, y, s.r * 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = s.color || 'rgba(253,252,255,0.88)';
+      ctx.beginPath();
+      ctx.arc(x, y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+}
+
+// ── Sky canvas — handles all four time-of-day scenes ─────────────────────────
 function StarfieldCanvas() {
-  const canvasRef  = React.useRef(null);
-  const animRef    = React.useRef(null);
-  const timerRef   = React.useRef(null);
-  const pausedRef  = React.useRef(false);
+  const canvasRef = React.useRef(null);
+  const animRef   = React.useRef(null);
+  const timerRef  = React.useRef(null);
+  const pausedRef = React.useRef(false);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,6 +116,7 @@ function StarfieldCanvas() {
     resize();
     window.addEventListener('resize', resize);
 
+    // Drifting background stars (night + dawn)
     const bgStars = Array.from({ length: 120 }, () => ({
       x:             Math.random() * window.innerWidth,
       y:             Math.random() * window.innerHeight,
@@ -33,10 +128,34 @@ function StarfieldCanvas() {
       vy:            (Math.random() - 0.5) * 0.04,
     }));
 
+    // Shooting stars (night only)
     const shootingStars = [];
+
+    // Clouds (day + dawn)
+    const clouds = Array.from({ length: 6 }, (_, i) => ({
+      x:     -150 + Math.random() * (window.innerWidth + 300),
+      y:     window.innerHeight * (0.08 + Math.random() * 0.46),
+      speed: 0.10 + Math.random() * 0.22,
+      scale: 0.55 + Math.random() * 0.90,
+      puffs: _CLOUD_PUFFS[i % _CLOUD_PUFFS.length],
+    }));
+
+    // Birds (golden hour)
+    const birds = Array.from({ length: 22 }, () => ({
+      x:         Math.random() * window.innerWidth * 1.8 - window.innerWidth * 0.4,
+      y:         window.innerHeight * (0.06 + Math.random() * 0.56),
+      speed:     0.55 + Math.random() * 1.45,
+      wingPhase: Math.random() * Math.PI * 2,
+      wingSpeed: 0.030 + Math.random() * 0.030,
+      size:      3 + Math.random() * 5,
+    }));
 
     function spawnShootingStar() {
       if (pausedRef.current) return;
+      if (_skyPeriod() !== 'night') {
+        timerRef.current = setTimeout(spawnShootingStar, 5000);
+        return;
+      }
       const fromTop = Math.random() < 0.6;
       const startX  = fromTop ? Math.random() * window.innerWidth * 0.8 : -20;
       const startY  = fromTop ? -20 : Math.random() * window.innerHeight * 0.5;
@@ -44,8 +163,7 @@ function StarfieldCanvas() {
       const speed   = 3.5 + Math.random() * 2.5;
       shootingStars.push({
         x: startX, y: startY,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
         tailLen: 100 + Math.random() * 80,
         opacity: 0, fadingIn: true, done: false,
       });
@@ -58,50 +176,199 @@ function StarfieldCanvas() {
       if (pausedRef.current) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       frame++;
+      const W = canvas.width, H = canvas.height;
+      const period = _skyPeriod();
 
-      bgStars.forEach(s => {
-        s.x += s.vx;
-        s.y += s.vy;
-        if (s.x < -2)                s.x = canvas.width  + 2;
-        if (s.x > canvas.width  + 2) s.x = -2;
-        if (s.y < -2)                s.y = canvas.height + 2;
-        if (s.y > canvas.height + 2) s.y = -2;
-        const b = s.brightness * (0.65 + 0.35 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
-        ctx.fillStyle = `rgba(253,252,255,${b})`;
-        ctx.fillRect(Math.round(s.x), Math.round(s.y), s.size, s.size);
-      });
+      // ── Night (6 pm – 4 am) ────────────────────────────────────────────────
+      if (period === 'night') {
+        _skyGradient(ctx, W, H, [
+          [0,   '#05050f'],
+          [0.4, '#0d0d1a'],
+          [1,   '#1a1a2e'],
+        ]);
 
-      for (let i = shootingStars.length - 1; i >= 0; i--) {
-        const ss = shootingStars[i];
-        if (ss.done) { shootingStars.splice(i, 1); continue; }
-        ss.x += ss.vx;
-        ss.y += ss.vy;
-        if (ss.fadingIn) {
-          ss.opacity = Math.min(1, ss.opacity + 0.08);
-          if (ss.opacity >= 1) ss.fadingIn = false;
+        bgStars.forEach(s => {
+          s.x += s.vx; s.y += s.vy;
+          if (s.x < -2)    s.x = W + 2;
+          if (s.x > W + 2) s.x = -2;
+          if (s.y < -2)    s.y = H + 2;
+          if (s.y > H + 2) s.y = -2;
+          const b = s.brightness * (0.65 + 0.35 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
+          ctx.fillStyle = `rgba(253,252,255,${b})`;
+          ctx.fillRect(Math.round(s.x), Math.round(s.y), s.size, s.size);
+        });
+
+        _drawConstellations(ctx, W, H);
+
+        for (let i = shootingStars.length - 1; i >= 0; i--) {
+          const ss = shootingStars[i];
+          if (ss.done) { shootingStars.splice(i, 1); continue; }
+          ss.x += ss.vx; ss.y += ss.vy;
+          if (ss.fadingIn) {
+            ss.opacity = Math.min(1, ss.opacity + 0.08);
+            if (ss.opacity >= 1) ss.fadingIn = false;
+          }
+          const offscreen = ss.x > W + 50 || ss.y > H + 50;
+          if (offscreen) {
+            ss.opacity = Math.max(0, ss.opacity - 0.06);
+            if (ss.opacity <= 0) { ss.done = true; continue; }
+          }
+          const len  = Math.hypot(ss.vx, ss.vy);
+          const nx   = ss.vx / len, ny = ss.vy / len;
+          const tailX = ss.x - nx * ss.tailLen, tailY = ss.y - ny * ss.tailLen;
+          const grad  = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
+          grad.addColorStop(0,   `rgba(255,224,102,0)`);
+          grad.addColorStop(0.5, `rgba(255,224,102,${ss.opacity * 0.4})`);
+          grad.addColorStop(1,   `rgba(253,252,255,${ss.opacity})`);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth   = 2;
+          ctx.beginPath();
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(ss.x,  ss.y);
+          ctx.stroke();
+          ctx.fillStyle = `rgba(253,252,255,${ss.opacity})`;
+          ctx.fillRect(Math.round(ss.x) - 1, Math.round(ss.y) - 1, 3, 3);
         }
-        const offscreen = ss.x > canvas.width + 50 || ss.y > canvas.height + 50;
-        if (offscreen) {
-          ss.opacity = Math.max(0, ss.opacity - 0.06);
-          if (ss.opacity <= 0) { ss.done = true; continue; }
-        }
-        const len  = Math.hypot(ss.vx, ss.vy);
-        const nx   = ss.vx / len;
-        const ny   = ss.vy / len;
-        const tailX = ss.x - nx * ss.tailLen;
-        const tailY = ss.y - ny * ss.tailLen;
-        const grad  = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
-        grad.addColorStop(0,   `rgba(255,224,102,0)`);
-        grad.addColorStop(0.5, `rgba(255,224,102,${ss.opacity * 0.4})`);
-        grad.addColorStop(1,   `rgba(253,252,255,${ss.opacity})`);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth   = 2;
-        ctx.beginPath();
-        ctx.moveTo(tailX, tailY);
-        ctx.lineTo(ss.x,  ss.y);
-        ctx.stroke();
-        ctx.fillStyle = `rgba(253,252,255,${ss.opacity})`;
-        ctx.fillRect(Math.round(ss.x) - 1, Math.round(ss.y) - 1, 3, 3);
+      }
+
+      // ── Day (9 am – 4 pm) ─────────────────────────────────────────────────
+      else if (period === 'day') {
+        _skyGradient(ctx, W, H, [
+          [0,    '#3a78c8'],
+          [0.35, '#5498de'],
+          [0.70, '#8ac4f0'],
+          [1,    '#c8e8fa'],
+        ]);
+
+        // Sun — soft glow + bright disc
+        const sx = W * 0.78, sy = H * 0.14;
+        const sunG = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.24);
+        sunG.addColorStop(0,    'rgba(255,255,220,0.55)');
+        sunG.addColorStop(0.38, 'rgba(255,240,160,0.22)');
+        sunG.addColorStop(1,    'rgba(255,240,160,0)');
+        ctx.fillStyle = sunG;
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.24, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,230,0.92)';
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.048, 0, Math.PI * 2); ctx.fill();
+
+        // Daytime crescent moon (visible in a blue sky, upper-left)
+        const mx = W * 0.18, my = H * 0.10, mr = H * 0.022;
+        ctx.fillStyle = 'rgba(240,242,255,0.75)';
+        ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(88,152,212,0.72)'; // sky colour overlay → crescent
+        ctx.beginPath(); ctx.arc(mx + mr * 0.45, my, mr * 0.86, 0, Math.PI * 2); ctx.fill();
+
+        // Rolling clouds drifting slowly
+        clouds.forEach(c => {
+          c.x += c.speed;
+          if (c.x - 220 * c.scale > W) c.x = -220 * c.scale;
+          const cloudR = 75 * c.scale;
+          const grd = ctx.createRadialGradient(c.x, c.y - cloudR * 0.28, cloudR * 0.05, c.x, c.y, cloudR * 1.15);
+          grd.addColorStop(0,   'rgba(255,255,255,0.97)');
+          grd.addColorStop(0.55,'rgba(248,251,255,0.88)');
+          grd.addColorStop(1,   'rgba(205,222,242,0.68)');
+          c.puffs.forEach(p => {
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.ellipse(c.x + p.dx * c.scale, c.y + p.dy * c.scale,
+              p.r * c.scale * 1.22, p.r * c.scale * 0.80, 0, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        });
+      }
+
+      // ── Golden hour (4 pm – 6 pm) ─────────────────────────────────────────
+      else if (period === 'golden') {
+        _skyGradient(ctx, W, H, [
+          [0,    '#0a0818'],
+          [0.18, '#280840'],
+          [0.42, '#781828'],
+          [0.68, '#d84810'],
+          [0.85, '#f07818'],
+          [1,    '#f8b020'],
+        ]);
+
+        // Setting sun — large glow on the horizon
+        const sx = W * 0.50, sy = H * 0.86;
+        const sunG = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.32);
+        sunG.addColorStop(0,    'rgba(255,220,100,0.72)');
+        sunG.addColorStop(0.28, 'rgba(255,140, 30,0.44)');
+        sunG.addColorStop(0.65, 'rgba(220, 60,  0,0.18)');
+        sunG.addColorStop(1,    'rgba(220, 60,  0,0)');
+        ctx.fillStyle = sunG;
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.32, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,210,80,0.90)';
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.052, 0, Math.PI * 2); ctx.fill();
+
+        // Birds flying silhouettes
+        birds.forEach(b => {
+          b.x += b.speed;
+          b.wingPhase += b.wingSpeed;
+          if (b.x > W + 50) b.x = -50;
+          const flap = Math.sin(b.wingPhase) * b.size * 0.55;
+          ctx.strokeStyle = 'rgba(8,4,20,0.80)';
+          ctx.lineWidth   = Math.max(1, b.size * 0.28);
+          ctx.lineCap     = 'round';
+          ctx.beginPath();
+          ctx.moveTo(b.x - b.size * 1.3, b.y - flap);
+          ctx.quadraticCurveTo(b.x, b.y + flap * 0.35, b.x + b.size * 1.3, b.y - flap);
+          ctx.stroke();
+        });
+      }
+
+      // ── Dawn (4 am – 9 am) ────────────────────────────────────────────────
+      else {
+        _skyGradient(ctx, W, H, [
+          [0,    '#050510'],
+          [0.22, '#0a1828'],
+          [0.48, '#1a3a60'],
+          [0.72, '#4888a8'],
+          [0.88, '#a8ccd8'],
+          [1,    '#f0c048'],
+        ]);
+
+        // Faint fading stars near the top
+        bgStars.slice(0, 55).forEach(s => {
+          s.x += s.vx * 0.4; s.y += s.vy * 0.4;
+          if (s.x < -2)    s.x = W + 2;
+          if (s.x > W + 2) s.x = -2;
+          if (s.y < -2)    s.y = H + 2;
+          if (s.y > H + 2) s.y = -2;
+          const fade = Math.max(0, 1 - s.y / (H * 0.52));
+          if (fade <= 0) return;
+          const b = s.brightness * 0.55 * fade * (0.7 + 0.3 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
+          ctx.fillStyle = `rgba(253,252,255,${b})`;
+          ctx.fillRect(Math.round(s.x), Math.round(s.y), 1, 1);
+        });
+
+        // Rising sun glow from just below horizon
+        const sx = W * 0.50, sy = H * 1.05;
+        const sunG = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.68);
+        sunG.addColorStop(0,    'rgba(255,240,180,0.70)');
+        sunG.addColorStop(0.20, 'rgba(255,200, 80,0.40)');
+        sunG.addColorStop(0.50, 'rgba(240,120, 20,0.15)');
+        sunG.addColorStop(1,    'rgba(240,120, 20,0)');
+        ctx.fillStyle = sunG;
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.68, 0, Math.PI * 2); ctx.fill();
+
+        // Soft pastel dawn clouds catching early light
+        clouds.slice(0, 3).forEach(c => {
+          c.x += c.speed * 0.4;
+          if (c.x - 220 * c.scale > W) c.x = -220 * c.scale;
+          const cy     = H * 0.52 + (c.y / H - 0.52) * H * 0.5;
+          const cloudR = 65 * c.scale;
+          const grd = ctx.createRadialGradient(c.x, cy - cloudR * 0.28, cloudR * 0.05, c.x, cy, cloudR * 1.1);
+          grd.addColorStop(0,   'rgba(255,218,195,0.68)');
+          grd.addColorStop(0.5, 'rgba(220,180,210,0.46)');
+          grd.addColorStop(1,   'rgba(170,140,180,0.18)');
+          c.puffs.forEach(p => {
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.ellipse(c.x + p.dx * c.scale, cy + p.dy * c.scale,
+              p.r * c.scale * 1.18, p.r * c.scale * 0.78, 0, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        });
       }
 
       animRef.current = requestAnimationFrame(draw);
@@ -111,7 +378,7 @@ function StarfieldCanvas() {
       pausedRef.current = true;
       cancelAnimationFrame(animRef.current);
       clearTimeout(timerRef.current);
-      shootingStars.length = 0; // discard accumulated stars so they don't burst on resume
+      shootingStars.length = 0;
     }
 
     function resume() {
