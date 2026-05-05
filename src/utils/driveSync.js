@@ -10,7 +10,7 @@
 //   5. Paste the Client ID below
 
 (function () {
-  const CLIENT_ID  = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+  const CLIENT_ID  = '80276356803-oo1524sai73jnaica4srti6laacp793i.apps.googleusercontent.com';
   const SCOPE      = 'https://www.googleapis.com/auth/drive.appdata email profile';
   const FILE_NAME  = 'jar-of-stars.json';
   const SYNC_DELAY = 3000; // ms debounce before writing
