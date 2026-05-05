@@ -36,6 +36,7 @@ function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete })
   const [foilActive,    setFoilActive]    = React.useState(false);
   const panelRef = React.useRef(null);
   const allTags = window.store.getAllTags();
+  const starColor = getStarColor(star.star_id);
 
   React.useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
@@ -118,7 +119,7 @@ function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete })
         )}
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <PixelStar size={16}/>
+          <PixelStar size={16} color={starColor.color} shadowColor={starColor.shadow}/>
           <span style={{ fontFamily: "'Fredoka'", fontSize: 16, color: '#2d2b3d', flex: 1 }}>
             {editing ? 'Edit Memory' : 'Memory'}
           </span>

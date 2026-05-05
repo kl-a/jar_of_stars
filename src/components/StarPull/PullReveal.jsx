@@ -1,9 +1,18 @@
 // Full-screen pull reveal — scroll unroll, trumpeters, streamers, share button.
 // Next.js migration: export function PullReveal(...)
 
+const _SOOT_SPRITES = [
+  { left: '12%',  delay: '0.10s', size: 44 },
+  { left: '28%',  delay: '0.22s', size: 52 },
+  { left: '50%',  delay: '0.05s', size: 48 },
+  { left: '68%',  delay: '0.18s', size: 44 },
+  { left: '84%',  delay: '0.30s', size: 40 },
+];
+
 function PullReveal({ star, people, onClose }) {
   const [phase,  setPhase]  = React.useState(0); // 0=overlay 1=scroll 2=content 3=trumpeters
   const [copied, setCopied] = React.useState(false);
+  const starColor = getStarColor(star.star_id);
 
   React.useEffect(() => {
     const t1 = setTimeout(() => setPhase(1), 300);
@@ -65,6 +74,20 @@ function PullReveal({ star, people, onClose }) {
         <TrumpeterSVG color="#b5ead7" flip/>
       </div>
 
+      {/* Soot sprites — bounce up from the bottom to celebrate */}
+      {_SOOT_SPRITES.map((s, i) => (
+        <div key={i} style={{
+          position:   'absolute',
+          bottom:      8,
+          left:        s.left,
+          transform:   phase >= 3 ? 'translateY(0)' : 'translateY(120px)',
+          transition: `transform 0.55s cubic-bezier(0.34,1.56,0.64,1) ${s.delay}`,
+          zIndex:      8,
+        }}>
+          <SootSprite size={s.size}/>
+        </div>
+      ))}
+
       {/* Scroll */}
       <div style={{
         position:        'relative',
@@ -91,7 +114,7 @@ function PullReveal({ star, people, onClose }) {
           opacity:         phase >= 2 ? 1 : 0,
           transition:     'opacity 0.4s ease',
         }}>
-          <PixelStar size={20}/>
+          <PixelStar size={20} color={starColor.color} shadowColor={starColor.shadow}/>
 
           <div style={{ fontFamily: "'Fredoka'", fontSize: 14, color: '#7a6fa0', textAlign: 'center' }}>
             {new Date(star.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}

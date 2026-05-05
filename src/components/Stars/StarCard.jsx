@@ -54,6 +54,7 @@ function FoilCard({ children, isFavourite, style = {} }) {
 
 function StarCard({ star, people, onToggleFavourite, onExpand }) {
   const [heartBurst, setHeartBurst] = React.useState(false);
+  const starColor = getStarColor(star.star_id);
   const starPeople = (star.from_people_ids || [])
     .map(id => people.find(p => p.people_id === id)).filter(Boolean);
 
@@ -105,7 +106,7 @@ function StarCard({ star, people, onToggleFavourite, onExpand }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
-            <PixelStar size={18} color="#ffe066" shadowColor="#c9a84c"/>
+            <PixelStar size={18} color={starColor.color} shadowColor={starColor.shadow}/>
             {heartBurst && (
               <div style={{ position: 'absolute', top: -4, left: -4 }}>
                 {[0,1,2,3].map(i => (
