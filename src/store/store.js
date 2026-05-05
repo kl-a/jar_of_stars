@@ -62,6 +62,7 @@ class Store {
       }
     });
     this._notify();
+    window.driveSync?.scheduleSave();
     return star;
   }
 
@@ -84,6 +85,7 @@ class Store {
       });
     }
     this._notify();
+    window.driveSync?.scheduleSave();
   }
 
   deleteStar(id) {
@@ -93,6 +95,7 @@ class Store {
       star_ids: p.star_ids.filter(sid => sid !== id),
     }));
     this._notify();
+    window.driveSync?.scheduleSave();
   }
 
   pullRandomStar(favouritesOnly = false) {
@@ -117,12 +120,14 @@ class Store {
     };
     this.people = [person, ...this.people];
     this._notify();
+    window.driveSync?.scheduleSave();
     return person;
   }
 
   updatePerson(id, updates) {
     this.people = this.people.map(p => p.people_id === id ? { ...p, ...updates } : p);
     this._notify();
+    window.driveSync?.scheduleSave();
   }
 
   deletePerson(id) {
@@ -133,6 +138,7 @@ class Store {
       from_people_ids: (s.from_people_ids || []).filter(pid => pid !== id),
     }));
     this._notify();
+    window.driveSync?.scheduleSave();
   }
 
   clearNewFlags() {
@@ -143,24 +149,32 @@ class Store {
   setOnboarded() {
     this.isOnboarded = true;
     this._notify();
+    window.driveSync?.scheduleSave();
   }
 
   // ── IO actions ──────────────────────────────────────────────────────────────
 
-  importDatabase(db) {
+  // skipSync: true when called by driveSync itself (avoids immediate write-back after load)
+  importDatabase(db, skipSync = false) {
     this.stars       = db.stars  || [];
     this.people      = db.people || [];
     this.isOnboarded = true;
     this._notify();
+    if (!skipSync) window.driveSync?.scheduleSave();
+  }
+
+  exportRaw() {
+    return {
+      version:     SCHEMA_VERSION,
+      exportedAt:  new Date().toISOString(),
+      stars:       this.stars,
+      people:      this.people,
+      isOnboarded: this.isOnboarded,
+    };
   }
 
   exportDatabase() {
-    exportDatabase({
-      version:    SCHEMA_VERSION,
-      exportedAt: new Date().toISOString(),
-      stars:      this.stars,
-      people:     this.people,
-    });
+    exportDatabase(this.exportRaw());
   }
 
   getAllTags() {

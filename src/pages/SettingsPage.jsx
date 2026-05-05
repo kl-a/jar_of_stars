@@ -6,7 +6,17 @@ function SettingsPage({ stars, people }) {
   const [pendingDb,     setPendingDb]     = React.useState(null);
   const [importError,   setImportError]   = React.useState('');
   const [importSuccess, setImportSuccess] = React.useState(false);
+  const [driveStatus,   setDriveStatus]   = React.useState(() => window.driveSync?.getStatus() || 'signed-out');
+  const [driveUser,     setDriveUser]     = React.useState(() => window.driveSync?.getUserInfo() || null);
   const fileRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!window.driveSync?.isConfigured()) return;
+    return window.driveSync.onStatus(s => {
+      setDriveStatus(s);
+      setDriveUser(window.driveSync.getUserInfo());
+    });
+  }, []);
 
   function handleFileSelect(e) {
     const file = e.target.files[0];
@@ -59,6 +69,60 @@ function SettingsPage({ stars, people }) {
         <span style={{ fontSize: 16 }}>⚙</span>
         <span style={{ fontFamily: "'Fredoka'", fontSize: 18, color: '#fdfcff' }}>Settings</span>
       </div>
+
+      {/* Google Drive Sync */}
+      {window.driveSync?.isConfigured() && (
+        <div style={cardStyle}>
+          <div style={{ fontFamily: "'Fredoka'", fontSize: 16, color: '#2d2b3d', marginBottom: 10 }}>
+            Google Drive Sync
+          </div>
+
+          {driveStatus === 'signed-out' || driveStatus === 'signing-in' ? (
+            <>
+              <div style={bodyTextStyle}>
+                Sign in to automatically sync your memories across all your devices.
+                Your data is stored in your own Google Drive — we never see it.
+              </div>
+              <PixelButton
+                onClick={() => window.driveSync.signIn()}
+                color="#c4d4f8" shadowColor="#7a9fd4"
+                disabled={driveStatus === 'signing-in'}
+                small
+              >
+                {driveStatus === 'signing-in' ? '⏳ Signing in…' : 'Sign in with Google'}
+              </PixelButton>
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {driveUser?.picture && (
+                <img
+                  src={driveUser.picture}
+                  alt=""
+                  style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid #7a6fa0', flexShrink: 0 }}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'Fredoka'", fontSize: 13, color: '#2d2b3d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {driveUser?.email || 'Google Account'}
+                </div>
+                <div style={{ fontFamily: "'Fredoka'", fontSize: 12, color: {
+                  loading:  '#9b89c4',
+                  syncing:  '#9b89c4',
+                  synced:   '#6aab90',
+                  error:    '#c98a88',
+                }[driveStatus] || '#9b89c4', marginTop: 2 }}>
+                  {{ loading: '⏳ Loading…', syncing: '⟳ Syncing…', synced: '✓ Synced', error: '⚠ Sync error — check connection' }[driveStatus] || ''}
+                </div>
+              </div>
+              <PixelButton
+                onClick={() => window.driveSync.signOut()}
+                color="#9b89c4" shadowColor="#7a6fa0" textColor="#fdfcff"
+                small
+              >Sign Out</PixelButton>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Export */}
       <div style={cardStyle}>

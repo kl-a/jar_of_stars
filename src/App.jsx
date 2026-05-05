@@ -84,6 +84,9 @@ function App() {
 
   React.useEffect(() => window.store.subscribe(refreshStore), []);
 
+  // Initialise Google Drive sync (no-op if CLIENT_ID not configured)
+  React.useEffect(() => { window.driveSync?.init(); }, []);
+
   // Clear new-person badges shortly after load
   React.useEffect(() => {
     if (window.store.isOnboarded) {
@@ -91,10 +94,11 @@ function App() {
     }
   }, []);
 
-  // beforeunload — native browser dialog when closing/refreshing with unsaved stars
+  // beforeunload — warn only when Drive sync is not active (data would be lost)
   React.useEffect(() => {
     function handleBeforeUnload(e) {
       if (window.store.stars.length === 0) return;
+      if (window.driveSync?.isSignedIn()) return; // Drive keeps data safe
       e.preventDefault();
       e.returnValue = '';
     }
@@ -102,11 +106,12 @@ function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // visibilitychange — show export reminder once per session when user returns to tab
+  // visibilitychange — show export reminder only when Drive sync is not active
   React.useEffect(() => {
     function handleVisibilityChange() {
       if (document.visibilityState !== 'visible') return;
       if (window.store.stars.length === 0) return;
+      if (window.driveSync?.isSignedIn()) return; // Drive keeps data safe
       if (sessionStorage.getItem('exportReminderShown')) return;
       sessionStorage.setItem('exportReminderShown', '1');
       setShowExportReminder(true);
