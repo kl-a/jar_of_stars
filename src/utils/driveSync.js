@@ -97,6 +97,19 @@
     _userInfo = await res.json();
   }
 
+  // Last-write-wins merge: items with a newer updated_at (or created_at fallback) win.
+  function _merge(localItems, driveItems, idKey) {
+    const map = new Map();
+    driveItems.forEach(item => map.set(item[idKey], item));
+    localItems.forEach(item => {
+      const existing = map.get(item[idKey]);
+      const localTs  = item.updated_at  || item.created_at  || '';
+      const driveTs  = existing ? (existing.updated_at || existing.created_at || '') : '';
+      if (!existing || localTs > driveTs) map.set(item[idKey], item);
+    });
+    return [...map.values()];
+  }
+
   // ── Token callback ────────────────────────────────────────────────────────────
 
   async function _onToken(response) {
@@ -125,9 +138,17 @@
       await _fetchUserInfo();
       _fileId = await _findFile();
       if (_fileId) {
-        const data = await _readFile(_fileId);
-        if (data && data.stars) {
-          window.store.importDatabase(data, true); // true = skip Drive write-back
+        const driveData = await _readFile(_fileId);
+        if (driveData && driveData.stars) {
+          const local = window.store.exportRaw();
+          const merged = {
+            ...driveData,
+            stars:  _merge(local.stars,  driveData.stars,  'star_id'),
+            people: _merge(local.people, driveData.people, 'people_id'),
+          };
+          window.store.importDatabase(merged, true);
+          // Write merged result back so Drive is up to date
+          await _writeFile(window.store.exportRaw());
         }
       }
       _setStatus('synced');

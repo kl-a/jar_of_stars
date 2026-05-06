@@ -427,6 +427,65 @@ const _FLOAT_SLOTS = Array.from({ length: 10 }, (_, i) => {
   };
 });
 
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let _audioCtx      = null;
+let _lastTwinkleMs = 0;
+let _lastRippleMs  = 0; // tracks when last ripple fired, for sound gating
+
+function _soundOn() { return localStorage.getItem('josSoundEnabled') !== 'false'; }
+
+function _ensureAudio() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+function _playGlassPing() {
+  if (!_soundOn()) return;
+  try {
+    const ctx = _ensureAudio();
+    const t   = ctx.currentTime;
+    // Fundamental tone — sine with gentle pitch drop, like tapping a glass
+    const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+    o1.connect(g1); g1.connect(ctx.destination);
+    o1.type = 'sine';
+    o1.frequency.setValueAtTime(1080, t);
+    o1.frequency.exponentialRampToValueAtTime(820, t + 0.4);
+    g1.gain.setValueAtTime(0.16, t);
+    g1.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o1.start(t); o1.stop(t + 0.5);
+    // Subtle 2nd harmonic for glassiness
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(2160, t);
+    o2.frequency.exponentialRampToValueAtTime(1640, t + 0.25);
+    g2.gain.setValueAtTime(0.055, t);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    o2.start(t); o2.stop(t + 0.3);
+  } catch (e) {}
+}
+
+function _playStarTwinkle() {
+  if (!_soundOn()) return;
+  const now = Date.now();
+  if (now - _lastTwinkleMs < 100) return; // cap at ~10 twinkles/sec
+  _lastTwinkleMs = now;
+  try {
+    const ctx  = _ensureAudio();
+    const t    = ctx.currentTime;
+    const freq = 1800 + Math.random() * 1600; // random pitch each time
+    const osc  = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.35, t + 0.04);
+    gain.gain.setValueAtTime(0.07, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    osc.start(t); osc.stop(t + 0.12);
+  } catch (e) {}
+}
+
 function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos, ripple }) {
   const physRef     = React.useRef([]);
   const elemRefs    = React.useRef([]);
@@ -447,10 +506,12 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
     const minX = jarW * 0.14;
     const maxX = jarW * 0.86;
     physRef.current = Array.from({ length: floatingCount }, () => ({
-      x:  minX + Math.random() * (maxX - minX),
-      y:  minY + Math.random() * Math.max(6, maxY - minY),
-      vx: (Math.random() - 0.5) * 0.15,
-      vy: (Math.random() - 0.5) * 0.15,
+      x:     minX + Math.random() * (maxX - minX),
+      y:     minY + Math.random() * Math.max(6, maxY - minY),
+      vx:    (Math.random() - 0.5) * 0.15,
+      vy:    (Math.random() - 0.5) * 0.15,
+      // Start at a diagonal (45°/135°/225°/315° ± a bit) so no star begins axis-aligned
+      angle: Math.PI / 4 + Math.floor(Math.random() * 4) * (Math.PI / 2) + (Math.random() - 0.5) * 0.5,
     }));
   }, [floatingCount, jarW, jarH]);
 
@@ -461,14 +522,12 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
     function step() {
       const mp  = mpRef.current;
       const rip = ripRef.current;
-      if (rip) ripRef.current = null;
+      if (rip) { ripRef.current = null; _lastRippleMs = Date.now(); }
 
       const minY   = jarH * (_BODY_TOP_FRAC + 0.03) + 6;
       const maxY   = jarH * _BODY_BOTTOM_FRAC - 8;
       const minX   = jarW * 0.13;
       const maxX   = jarW * 0.87;
-      const midX   = (minX + maxX) / 2;
-      const midY   = (minY + maxY) / 2;
       const BOUNCE = 0.18;
 
       physRef.current.forEach((p, i) => {
@@ -478,9 +537,12 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
         if (!el) return;
         const hs = s.size / 2;
 
-        // Thermal noise — keeps stars gently alive at all times
-        p.vx += (Math.random() - 0.5) * 0.06;
-        p.vy += (Math.random() - 0.5) * 0.06;
+        // Each star drifts in its own direction — angle turns quickly enough
+        // to avoid getting stuck horizontal/vertical, plus independent x/y
+        // noise so there's always a diagonal component
+        p.angle += (Math.random() - 0.5) * 0.08;
+        p.vx += Math.cos(p.angle) * 0.006 + (Math.random() - 0.5) * 0.04;
+        p.vy += Math.sin(p.angle) * 0.006 + (Math.random() - 0.5) * 0.04;
 
         // Ripple: outward impulse from click point
         if (rip) {
@@ -496,10 +558,6 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
           // Mouse attraction: slow, dreamy pull toward cursor
           p.vx += (mp.x - p.x) * 0.0005;
           p.vy += (mp.y - p.y) * 0.0005;
-        } else {
-          // No mouse: very faint centre tendency so stars spread naturally
-          p.vx += (midX - p.x) * 0.00008;
-          p.vy += (midY - p.y) * 0.00008;
         }
 
         // High viscosity — slow, syrupy movement
@@ -533,6 +591,9 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
           p.vx += (Math.random() - 0.5) * 0.4;
           nearWall = true;
         }
+        // Twinkle only when the collision is mouse- or ripple-driven, not natural drift
+        if (nearWall && (mp || Date.now() - _lastRippleMs < 2000)) _playStarTwinkle();
+
         // Near-wall glow even before hard collision
         if (!nearWall) {
           nearWall = p.x - hs < minX + 5 || p.x + hs > maxX - 5 ||
@@ -634,6 +695,7 @@ function HomePage({ onNavigate, stars, people }) {
   function handleJarClick(e) {
     const rect = jarContainerRef.current?.getBoundingClientRect();
     if (!rect) return;
+    _playGlassPing();
     setJarWobble(true);
     setTimeout(() => setJarWobble(false), 600);
     const x  = e.clientX - rect.left;

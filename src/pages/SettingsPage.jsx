@@ -1,6 +1,61 @@
 // Settings page — export/import backup, about section.
 // Next.js migration: export default function SettingsPage(...)
 
+const FAQ_ITEMS = [
+  {
+    q: 'Is my data private?',
+    a: "Yes. Your memories are stored in your own Google Drive under a hidden app folder that only Jar of Stars can see. We never have access to your data.",
+  },
+  {
+    q: 'What happens if I add memories while offline?',
+    a: "No problem. Your memories are always saved locally on this device first. When you reconnect and sign back in, Jar of Stars compares timestamps and keeps whichever version of each memory or person was updated most recently — nothing gets lost.",
+  },
+  {
+    q: 'Will signing out delete my memories?',
+    a: "No. Signing out only disconnects the sync — your memories stay saved locally on this device. They are also safely stored in your Google Drive for when you sign back in.",
+  },
+  {
+    q: 'How long does a Google sign-in session last?',
+    a: "Google access tokens last about one hour. Jar of Stars will silently renew your session in the background while you use the app. If the renewal fails (e.g. after a very long break), you will see a 'Session expired' prompt and can tap Reconnect — no memories are lost.",
+  },
+  {
+    q: 'Can I use Jar of Stars on multiple devices?',
+    a: "Yes! Sign in with the same Google account on each device. The last-updated version of each memory wins when syncing, so you can freely add memories on any device.",
+  },
+  {
+    q: 'How do I back up or move my data?',
+    a: "Use Export Data (above) to download a JSON file of all your memories and people. You can import it on any device using Import Data — even without a Google account.",
+  },
+];
+
+function FaqItem({ item }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ borderBottom: '1px solid rgba(122,111,160,0.3)', paddingBottom: open ? 10 : 0 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '12px 0', textAlign: 'left', gap: 10,
+        }}
+      >
+        <span style={{ fontFamily: "'Fredoka'", fontSize: 13, color: '#c9b8f0', lineHeight: 1.4, flex: 1 }}>
+          {item.q}
+        </span>
+        <span style={{ fontFamily: "'Fredoka'", fontSize: 14, color: '#7a6fa0', flexShrink: 0, transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div style={{ fontFamily: "'Fredoka'", fontSize: 12, color: '#9b89c4', lineHeight: 2, paddingBottom: 4 }}>
+          {item.a}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsPage({ stars, people }) {
   const [importConfirm, setImportConfirm] = React.useState(false);
   const [pendingDb,     setPendingDb]     = React.useState(null);
@@ -8,6 +63,7 @@ function SettingsPage({ stars, people }) {
   const [importSuccess, setImportSuccess] = React.useState(false);
   const [driveStatus,   setDriveStatus]   = React.useState(() => window.driveSync?.getStatus() || 'signed-out');
   const [driveUser,     setDriveUser]     = React.useState(() => window.driveSync?.getUserInfo() || null);
+  const [faqOpen,       setFaqOpen]       = React.useState(false);
   const fileRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -198,6 +254,7 @@ function SettingsPage({ stars, people }) {
         border:       '2px solid #7a6fa0',
         borderRadius:  6,
         padding:      '18px 16px',
+        marginBottom:  14,
       }}>
         <div style={{ fontFamily: "'Fredoka'", fontSize: 16, color: '#fdfcff', marginBottom: 12 }}>
           About
@@ -209,6 +266,33 @@ function SettingsPage({ stars, people }) {
           <br/><br/>
           Every joy deserves to be remembered. ✦
         </div>
+      </div>
+
+      {/* FAQ */}
+      <div style={{
+        background:   'rgba(201,184,240,0.1)',
+        border:       '2px solid #7a6fa0',
+        borderRadius:  6,
+        overflow:     'hidden',
+      }}>
+        <button
+          onClick={() => setFaqOpen(o => !o)}
+          style={{
+            width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px',
+          }}
+        >
+          <span style={{ fontFamily: "'Fredoka'", fontSize: 16, color: '#fdfcff' }}>FAQ</span>
+          <span style={{ fontFamily: "'Fredoka'", fontSize: 14, color: '#7a6fa0', transition: 'transform 0.2s', display: 'inline-block', transform: faqOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            ▾
+          </span>
+        </button>
+        {faqOpen && (
+          <div style={{ padding: '0 16px 8px' }}>
+            {FAQ_ITEMS.map((item, i) => <FaqItem key={i} item={item}/>)}
+          </div>
+        )}
       </div>
 
       {/* Confirm import dialog */}

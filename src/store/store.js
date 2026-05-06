@@ -16,9 +16,10 @@ class Store {
       this.people   = [];
       this.isOnboarded = false;
     }
-    // Migrate legacy records that pre-date the created_at field
+    // Migrate legacy records that pre-date the created_at / updated_at fields
     const _now = new Date().toISOString();
-    this.stars = this.stars.map(s => s.created_at ? s : { ...s, created_at: _now });
+    this.stars  = this.stars.map(s => s.created_at ? s : { ...s, created_at: _now });
+    this.people = this.people.map(p => p.updated_at ? p : { ...p, updated_at: _now });
     this._listeners = [];
   }
 
@@ -120,6 +121,7 @@ class Store {
       star_ids:   [],
       is_new:     true,
       created_at: now,
+      updated_at: now,
     };
     this.people = [person, ...this.people];
     this._notify();
@@ -128,7 +130,9 @@ class Store {
   }
 
   updatePerson(id, updates) {
-    this.people = this.people.map(p => p.people_id === id ? { ...p, ...updates } : p);
+    this.people = this.people.map(p =>
+      p.people_id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
+    );
     this._notify();
     window.driveSync?.scheduleSave();
   }
@@ -160,8 +164,8 @@ class Store {
   // skipSync: true when called by driveSync itself (avoids immediate write-back after load)
   importDatabase(db, skipSync = false) {
     const _now = new Date().toISOString();
-    this.stars   = (db.stars || []).map(s => s.created_at ? s : { ...s, created_at: _now });
-    this.people  = db.people || [];
+    this.stars   = (db.stars   || []).map(s => s.created_at ? s : { ...s, created_at: _now });
+    this.people  = (db.people  || []).map(p => p.updated_at  ? p : { ...p, updated_at:  _now });
     this.isOnboarded = true;
     this._notify();
     if (!skipSync) window.driveSync?.scheduleSave();
