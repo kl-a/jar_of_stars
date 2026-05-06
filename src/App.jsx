@@ -2,6 +2,63 @@
 // Next.js migration: move NavBar to src/components/Layout/NavBar.tsx,
 // App becomes app/layout.tsx + app/page.tsx.
 
+function DriveStatusBadge() {
+  const [status, setStatus] = React.useState(() => window.driveSync?.getStatus() || 'signed-out');
+
+  React.useEffect(() => {
+    if (!window.driveSync?.isConfigured()) return;
+    return window.driveSync.onStatus(s => setStatus(s));
+  }, []);
+
+  if (!window.driveSync?.isConfigured()) return null;
+
+  const isOnline  = ['loading', 'syncing', 'synced'].includes(status);
+  const isSyncing = ['syncing', 'loading'].includes(status);
+  const label     = isSyncing ? 'Syncing…' : isOnline ? 'Synced' : status === 'session-expired' ? 'Session expired' : 'Offline · Sign In';
+
+  return (
+    <div
+      onClick={!isOnline ? () => window.driveSync.signIn() : undefined}
+      style={{
+        position:    'fixed',
+        top:          14,
+        right:        14,
+        zIndex:       60,
+        display:     'flex',
+        alignItems:  'center',
+        gap:          6,
+        background:  'rgba(22,33,62,0.88)',
+        border:      `1.5px solid ${isOnline ? '#6aab90' : '#4a3f6e'}`,
+        borderRadius: 20,
+        padding:     '5px 10px 5px 8px',
+        cursor:       !isOnline ? 'pointer' : 'default',
+        backdropFilter: 'blur(4px)',
+        transition:  'border-color 0.4s ease',
+      }}
+    >
+      <div style={{
+        flexShrink: 0,
+        animation:  isOnline && !isSyncing ? 'starGlow 2.5s ease-in-out infinite' : 'none',
+      }}>
+        <PixelStar
+          size={10}
+          color={isOnline ? '#b5ead7' : '#4a3f6e'}
+          shadowColor={isOnline ? '#6aab90' : '#2d2b3d'}
+        />
+      </div>
+      <span style={{
+        fontFamily: "'Fredoka'",
+        fontSize:    11,
+        color:       isOnline ? '#b5ead7' : '#7a6fa0',
+        lineHeight:  1,
+        whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 function NavBar({ page, onNavigate }) {
   const items = [
     { id: 'home',       label: 'Home',     icon: '⌂' },
@@ -140,6 +197,7 @@ function App() {
         <OnboardingFlow onComplete={refreshStore}/>
       ) : (
         <>
+          <DriveStatusBadge/>
           <NavBar page={page} onNavigate={setPage}/>
           <div style={contentStyle}>
             {page === 'home' && (

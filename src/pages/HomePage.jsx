@@ -442,16 +442,15 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
   // Initialise physics positions when count or jar dims change
   React.useEffect(() => {
     if (floatingCount === 0) { physRef.current = []; return; }
-    const lsf  = _BODY_BOTTOM_FRAC - fillFracRef.current * (_BODY_BOTTOM_FRAC - _BODY_TOP_FRAC);
-    const minY = jarH * lsf + 10;
-    const maxY = jarH * _BODY_BOTTOM_FRAC - 10;
+    const minY = jarH * (_BODY_TOP_FRAC + 0.03) + 6;
+    const maxY = jarH * _BODY_BOTTOM_FRAC - 8;
     const minX = jarW * 0.14;
     const maxX = jarW * 0.86;
     physRef.current = Array.from({ length: floatingCount }, () => ({
       x:  minX + Math.random() * (maxX - minX),
       y:  minY + Math.random() * Math.max(6, maxY - minY),
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
     }));
   }, [floatingCount, jarW, jarH]);
 
@@ -464,14 +463,13 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
       const rip = ripRef.current;
       if (rip) ripRef.current = null;
 
-      const lsf    = _BODY_BOTTOM_FRAC - fillFracRef.current * (_BODY_BOTTOM_FRAC - _BODY_TOP_FRAC);
-      const minY   = jarH * lsf + 6;
-      const maxY   = jarH * _BODY_BOTTOM_FRAC - 6;
+      const minY   = jarH * (_BODY_TOP_FRAC + 0.03) + 6;
+      const maxY   = jarH * _BODY_BOTTOM_FRAC - 8;
       const minX   = jarW * 0.13;
       const maxX   = jarW * 0.87;
       const midX   = (minX + maxX) / 2;
       const midY   = (minY + maxY) / 2;
-      const BOUNCE = 0.35;
+      const BOUNCE = 0.18;
 
       physRef.current.forEach((p, i) => {
         const s  = _FLOAT_SLOTS[i];
@@ -480,55 +478,59 @@ function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos,
         if (!el) return;
         const hs = s.size / 2;
 
+        // Thermal noise — keeps stars gently alive at all times
+        p.vx += (Math.random() - 0.5) * 0.06;
+        p.vy += (Math.random() - 0.5) * 0.06;
+
         // Ripple: outward impulse from click point
         if (rip) {
           const dx    = p.x - rip.x;
           const dy    = p.y - rip.y;
           const dist  = Math.sqrt(dx * dx + dy * dy) || 1;
-          const force = 12 / (1 + dist * 0.022);
+          const force = 7 / (1 + dist * 0.028);
           p.vx += (dx / dist) * force;
           p.vy += (dy / dist) * force;
         }
 
         if (mp) {
-          // Mouse attraction: slowly pull toward cursor
-          p.vx += (mp.x - p.x) * 0.0022;
-          p.vy += (mp.y - p.y) * 0.0022;
+          // Mouse attraction: slow, dreamy pull toward cursor
+          p.vx += (mp.x - p.x) * 0.0005;
+          p.vy += (mp.y - p.y) * 0.0005;
         } else {
-          // No mouse: gentle drift back toward liquid centre
-          p.vx += (midX - p.x) * 0.0003;
-          p.vy += (midY - p.y) * 0.0005;
+          // No mouse: very faint centre tendency so stars spread naturally
+          p.vx += (midX - p.x) * 0.00008;
+          p.vy += (midY - p.y) * 0.00008;
         }
 
-        // Viscosity / damping
-        p.vx *= 0.97;
-        p.vy *= 0.97;
+        // High viscosity — slow, syrupy movement
+        p.vx *= 0.985;
+        p.vy *= 0.985;
 
         p.x += p.vx;
         p.y += p.vy;
 
-        // Boundary collisions with bounce + perpendicular jitter
+        // Boundary collisions with soft bounce + small perpendicular jitter
         let nearWall = false;
         if (p.x - hs < minX) {
           p.x  = minX + hs;
           p.vx = Math.abs(p.vx) * BOUNCE;
-          p.vy += (Math.random() - 0.5) * 1.0;
+          p.vy += (Math.random() - 0.5) * 0.4;
           nearWall = true;
         } else if (p.x + hs > maxX) {
           p.x  = maxX - hs;
           p.vx = -Math.abs(p.vx) * BOUNCE;
-          p.vy += (Math.random() - 0.5) * 1.0;
+          p.vy += (Math.random() - 0.5) * 0.4;
           nearWall = true;
         }
         if (p.y - hs < minY) {
           p.y  = minY + hs;
           p.vy = Math.abs(p.vy) * BOUNCE;
-          p.vx += (Math.random() - 0.5) * 1.0;
+          p.vx += (Math.random() - 0.5) * 0.4;
           nearWall = true;
         } else if (p.y + hs > maxY) {
           p.y  = maxY - hs;
           p.vy = -Math.abs(p.vy) * BOUNCE;
-          p.vx += (Math.random() - 0.5) * 1.0;
+          p.vx += (Math.random() - 0.5) * 0.4;
           nearWall = true;
         }
         // Near-wall glow even before hard collision

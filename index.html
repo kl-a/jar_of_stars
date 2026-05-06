@@ -59,6 +59,11 @@
       100% { filter: hue-rotate(360deg); }
     }
 
+    @keyframes starGlow {
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(106,171,144,0.7)); }
+      50%       { filter: drop-shadow(0 0 7px rgba(106,171,144,1)) drop-shadow(0 0 14px rgba(106,171,144,0.45)); }
+    }
+
     @keyframes rippleExpand {
       0%   { transform: scale(0.2); opacity: 0.75; }
       100% { transform: scale(5.5); opacity: 0;    }
