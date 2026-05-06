@@ -131,6 +131,21 @@ function CollectionPage({ stars, people, onNavigate }) {
         </select>
       </div>
 
+      {/* All-favourites easter egg */}
+      {stars.length > 0 && stars.every(s => s.favourite) && (
+        <div style={{
+          textAlign:  'center',
+          padding:    '10px 16px 18px',
+          fontFamily: "'Fredoka'",
+          fontSize:    13,
+          color:      '#c98a88',
+          lineHeight:  2,
+          animation:  'fadeIn 0.6s ease',
+        }}>
+          ♥ you love them all equally. very wholesome.
+        </div>
+      )}
+
       {/* Cards */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0', color: '#9b89c4' }}>

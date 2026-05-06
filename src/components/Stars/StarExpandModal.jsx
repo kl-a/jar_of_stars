@@ -28,6 +28,7 @@ const _expandLabelStyle = {
 function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete }) {
   const [visible,       setVisible]       = React.useState(false);
   const [editing,       setEditing]       = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [editMessage,   setEditMessage]   = React.useState(star.message);
   const [editDate,      setEditDate]      = React.useState(star.date);
   const [editTags,      setEditTags]      = React.useState(star.tags || []);
@@ -88,11 +89,10 @@ function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete })
     maxWidth:      540,
     maxHeight:    '85vh',
     overflowY:    'auto',
-    padding:      '24px 20px 32px',
+    padding:      '24px 20px 80px',
     transform:     visible ? 'translateY(0)' : 'translateY(100%)',
     opacity:       visible ? 1 : 0,
     transition:   'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease',
-    overflow:     'hidden',
   };
 
   return (
@@ -104,6 +104,25 @@ function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete })
         onMouseEnter={() => star.favourite && setFoilActive(true)}
         onMouseLeave={() => { setFoilActive(false); setFoilPos({ x: 50, y: 50 }); }}
       >
+        {/* Dog-ear worn corner for well-loved memories */}
+        {star.pull_count >= 10 && (
+          <div
+            title={`Pulled ${star.pull_count} times`}
+            style={{
+              position:    'absolute',
+              top:          0,
+              right:        0,
+              width:         0,
+              height:        0,
+              borderStyle:  'solid',
+              borderWidth:  '20px 20px 0 0',
+              borderColor:  '#7a6fa0 transparent transparent transparent',
+              zIndex:        10,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+
         {/* Holographic shimmer overlay — only on favourite stars, on hover */}
         {star.favourite && foilActive && (
           <div style={{
@@ -215,24 +234,46 @@ function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete })
               ✦ pulled {star.pull_count} {star.pull_count === 1 ? 'time' : 'times'}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <PixelButton
-                onClick={startEdit}
-                color="#ffeaa7" shadowColor="#c9a84c"
-                small
-              >✎ Edit</PixelButton>
-              <PixelButton
-                onClick={() => { onToggleFavourite(star.star_id, !star.favourite); handleClose(); }}
-                color={star.favourite ? '#f7cac9' : '#c9b8f0'}
-                shadowColor={star.favourite ? '#c98a88' : '#7a6fa0'}
-                small
-              >{star.favourite ? '♥ Unfav' : '♡ Fav'}</PixelButton>
-              <PixelButton
-                onClick={() => { onDelete(star.star_id); handleClose(); }}
-                color="#9b89c4" shadowColor="#7a6fa0" textColor="#fdfcff"
-                small
-              >Delete</PixelButton>
-            </div>
+            {confirmDelete ? (
+              <div style={{
+                background:   'rgba(201,138,136,0.15)',
+                border:       '2px solid #c98a88',
+                borderRadius:  6,
+                padding:       14,
+                marginTop:     4,
+              }}>
+                <div style={{ fontFamily: "'Fredoka'", fontSize: 14, color: '#2d2b3d', marginBottom: 12, lineHeight: 2 }}>
+                  Delete this memory forever?
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <PixelButton onClick={() => { onDelete(star.star_id); handleClose(); }} color="#c98a88" shadowColor="#7a6fa0" textColor="#fdfcff" small>
+                    Yes, delete
+                  </PixelButton>
+                  <PixelButton onClick={() => setConfirmDelete(false)} color="#9b89c4" shadowColor="#7a6fa0" textColor="#fdfcff" small>
+                    Cancel
+                  </PixelButton>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <PixelButton
+                  onClick={startEdit}
+                  color="#ffeaa7" shadowColor="#c9a84c"
+                  small
+                >✎ Edit</PixelButton>
+                <PixelButton
+                  onClick={() => { onToggleFavourite(star.star_id, !star.favourite); handleClose(); }}
+                  color={star.favourite ? '#f7cac9' : '#c9b8f0'}
+                  shadowColor={star.favourite ? '#c98a88' : '#7a6fa0'}
+                  small
+                >{star.favourite ? '♥ Unfav' : '♡ Fav'}</PixelButton>
+                <PixelButton
+                  onClick={() => setConfirmDelete(true)}
+                  color="#9b89c4" shadowColor="#7a6fa0" textColor="#fdfcff"
+                  small
+                >Delete</PixelButton>
+              </div>
+            )}
           </>
         )}
       </div>

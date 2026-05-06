@@ -427,57 +427,160 @@ const _FLOAT_SLOTS = Array.from({ length: 10 }, (_, i) => {
   };
 });
 
-function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH }) {
-  const [tick,     setTick]     = React.useState(0);
-  const [glowingId, setGlowingId] = React.useState(-1);
+function FloatingStarsInJar({ floatingCount, fillFraction, jarW, jarH, mousePos, ripple }) {
+  const physRef     = React.useRef([]);
+  const elemRefs    = React.useRef([]);
+  const rafRef      = React.useRef(null);
+  const mpRef       = React.useRef(null);
+  const ripRef      = React.useRef(null);
+  const fillFracRef = React.useRef(fillFraction);
 
+  React.useEffect(() => { mpRef.current = mousePos; }, [mousePos]);
+  React.useEffect(() => { fillFracRef.current = fillFraction; }, [fillFraction]);
+  React.useEffect(() => { if (ripple) ripRef.current = ripple; }, [ripple]);
+
+  // Initialise physics positions when count or jar dims change
+  React.useEffect(() => {
+    if (floatingCount === 0) { physRef.current = []; return; }
+    const lsf  = _BODY_BOTTOM_FRAC - fillFracRef.current * (_BODY_BOTTOM_FRAC - _BODY_TOP_FRAC);
+    const minY = jarH * lsf + 10;
+    const maxY = jarH * _BODY_BOTTOM_FRAC - 10;
+    const minX = jarW * 0.14;
+    const maxX = jarW * 0.86;
+    physRef.current = Array.from({ length: floatingCount }, () => ({
+      x:  minX + Math.random() * (maxX - minX),
+      y:  minY + Math.random() * Math.max(6, maxY - minY),
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+    }));
+  }, [floatingCount, jarW, jarH]);
+
+  // Physics RAF loop — deps only include static dims, props read via refs
   React.useEffect(() => {
     if (floatingCount === 0) return;
-    const id = setInterval(() => setTick(t => t + 1), 40);
-    return () => clearInterval(id);
-  }, [floatingCount]);
+
+    function step() {
+      const mp  = mpRef.current;
+      const rip = ripRef.current;
+      if (rip) ripRef.current = null;
+
+      const lsf    = _BODY_BOTTOM_FRAC - fillFracRef.current * (_BODY_BOTTOM_FRAC - _BODY_TOP_FRAC);
+      const minY   = jarH * lsf + 6;
+      const maxY   = jarH * _BODY_BOTTOM_FRAC - 6;
+      const minX   = jarW * 0.13;
+      const maxX   = jarW * 0.87;
+      const midX   = (minX + maxX) / 2;
+      const midY   = (minY + maxY) / 2;
+      const BOUNCE = 0.35;
+
+      physRef.current.forEach((p, i) => {
+        const s  = _FLOAT_SLOTS[i];
+        if (!s || !p) return;
+        const el = elemRefs.current[i];
+        if (!el) return;
+        const hs = s.size / 2;
+
+        // Ripple: outward impulse from click point
+        if (rip) {
+          const dx    = p.x - rip.x;
+          const dy    = p.y - rip.y;
+          const dist  = Math.sqrt(dx * dx + dy * dy) || 1;
+          const force = 12 / (1 + dist * 0.022);
+          p.vx += (dx / dist) * force;
+          p.vy += (dy / dist) * force;
+        }
+
+        if (mp) {
+          // Mouse attraction: slowly pull toward cursor
+          p.vx += (mp.x - p.x) * 0.0022;
+          p.vy += (mp.y - p.y) * 0.0022;
+        } else {
+          // No mouse: gentle drift back toward liquid centre
+          p.vx += (midX - p.x) * 0.0003;
+          p.vy += (midY - p.y) * 0.0005;
+        }
+
+        // Viscosity / damping
+        p.vx *= 0.97;
+        p.vy *= 0.97;
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Boundary collisions with bounce + perpendicular jitter
+        let nearWall = false;
+        if (p.x - hs < minX) {
+          p.x  = minX + hs;
+          p.vx = Math.abs(p.vx) * BOUNCE;
+          p.vy += (Math.random() - 0.5) * 1.0;
+          nearWall = true;
+        } else if (p.x + hs > maxX) {
+          p.x  = maxX - hs;
+          p.vx = -Math.abs(p.vx) * BOUNCE;
+          p.vy += (Math.random() - 0.5) * 1.0;
+          nearWall = true;
+        }
+        if (p.y - hs < minY) {
+          p.y  = minY + hs;
+          p.vy = Math.abs(p.vy) * BOUNCE;
+          p.vx += (Math.random() - 0.5) * 1.0;
+          nearWall = true;
+        } else if (p.y + hs > maxY) {
+          p.y  = maxY - hs;
+          p.vy = -Math.abs(p.vy) * BOUNCE;
+          p.vx += (Math.random() - 0.5) * 1.0;
+          nearWall = true;
+        }
+        // Near-wall glow even before hard collision
+        if (!nearWall) {
+          nearWall = p.x - hs < minX + 5 || p.x + hs > maxX - 5 ||
+                     p.y - hs < minY + 5 || p.y + hs > maxY - 5;
+        }
+
+        el.style.left   = `${p.x - hs}px`;
+        el.style.top    = `${p.y - hs}px`;
+        el.style.filter = nearWall
+          ? `drop-shadow(0 0 8px ${s.color}) drop-shadow(0 0 14px ${s.color})`
+          : `drop-shadow(0 0 4px ${s.color})`;
+      });
+
+      rafRef.current = requestAnimationFrame(step);
+    }
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [floatingCount, jarW, jarH]);
 
   if (floatingCount === 0) return null;
 
-  const liquidSurfFrac = _BODY_BOTTOM_FRAC - fillFraction * (_BODY_BOTTOM_FRAC - _BODY_TOP_FRAC);
-  const zoneBottom = Math.max(_BODY_TOP_FRAC + 0.06, liquidSurfFrac - 0.02);
-  const zoneTop    = Math.max(_BODY_TOP_FRAC + 0.02, zoneBottom - 0.22);
-  const zoneH      = Math.max(0.06, zoneBottom - zoneTop);
-
-  function handleStarClick(e, id) {
-    e.stopPropagation();
-    setGlowingId(id);
-    setTimeout(() => setGlowingId(g => g === id ? -1 : g), 700);
-  }
-
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-      {_FLOAT_SLOTS.slice(0, floatingCount).map(s => {
-        const bobY    = Math.sin(tick * 0.05 * s.speed + s.phase) * 6;
-        const x       = jarW * s.xPct - s.size / 2;
-        const y       = jarH * (zoneTop + s.yInZone * zoneH) + bobY;
-        const glowing = glowingId === s.id;
-        return (
-          <div
-            key={s.id}
-            onClick={e => handleStarClick(e, s.id)}
-            style={{
-              position:      'absolute',
-              left:           x,
-              top:            y,
-              filter:         glowing
-                ? `drop-shadow(0 0 8px ${s.color}) drop-shadow(0 0 16px ${s.color})`
-                : `drop-shadow(0 0 4px ${s.color})`,
-              transition:    'filter 0.15s ease',
-              zIndex:         3,
-              cursor:        'pointer',
-              pointerEvents: 'all',
-            }}
-          >
-            <PixelStar size={glowing ? s.size + 2 : s.size} color={s.color} shadowColor={s.shadow}/>
-          </div>
-        );
-      })}
+      {_FLOAT_SLOTS.slice(0, floatingCount).map((s, i) => (
+        <div
+          key={s.id}
+          ref={el => { elemRefs.current[i] = el; }}
+          onClick={e => {
+            e.stopPropagation();
+            const el = elemRefs.current[i];
+            if (!el) return;
+            el.style.filter = `drop-shadow(0 0 10px ${s.color}) drop-shadow(0 0 22px ${s.color})`;
+            el.style.transform = 'scale(1.4)';
+            setTimeout(() => {
+              if (el) { el.style.filter = `drop-shadow(0 0 4px ${s.color})`; el.style.transform = ''; }
+            }, 600);
+          }}
+          onTouchStart={e => e.stopPropagation()}
+          style={{
+            position:      'absolute',
+            cursor:        'pointer',
+            pointerEvents: 'all',
+            zIndex:         3,
+            transition:    'transform 0.15s ease',
+          }}
+        >
+          <PixelStar size={s.size} color={s.color} shadowColor={s.shadow}/>
+        </div>
+      ))}
     </div>
   );
 }
@@ -504,6 +607,10 @@ function HomePage({ onNavigate, stars, people }) {
   const [showPull,    setShowPull]   = React.useState(null);
   const [showZip,     setShowZip]    = React.useState(false);
   const [jarWobble,   setJarWobble]  = React.useState(false);
+  const [mousePos,    setMousePos]   = React.useState(null);
+  const [ripple,      setRipple]     = React.useState(null);
+  const [rippleRings, setRippleRings]= React.useState([]);
+  const jarContainerRef = React.useRef(null);
 
   const count         = stars.length;
   const fillFraction  = Math.min(count / 120, 1);
@@ -520,6 +627,29 @@ function HomePage({ onNavigate, stars, people }) {
     setShowZip(false);
     setJarWobble(true);
     setTimeout(() => setJarWobble(false), 600);
+  }
+
+  function handleJarClick(e) {
+    const rect = jarContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setJarWobble(true);
+    setTimeout(() => setJarWobble(false), 600);
+    const x  = e.clientX - rect.left;
+    const y  = e.clientY - rect.top;
+    const id = Date.now();
+    setRipple({ x, y, id });
+    setRippleRings(prev => [...prev, { id, x, y }]);
+    setTimeout(() => setRippleRings(prev => prev.filter(r => r.id !== id)), 1000);
+  }
+
+  function handleJarMouseMove(e) {
+    const rect = jarContainerRef.current?.getBoundingClientRect();
+    if (rect) setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }
+
+  function handleJarTouchMove(e) {
+    const rect = jarContainerRef.current?.getBoundingClientRect();
+    if (rect) setMousePos({ x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top });
   }
 
   const isMobile = window.innerWidth < 640;
@@ -550,17 +680,45 @@ function HomePage({ onNavigate, stars, people }) {
       </div>
 
       {/* Jar */}
-      {/* Outer container — sets the size, does not transform */}
-      <div style={{
-        position: 'relative',
-        zIndex:    2,
-        marginTop: isMobile ? 10 : 16,
-        width:     jarW,
-        height:    jarH,
-      }}>
-        {/* Inner jar layer — wobbles on click */}
+      {/* Outer container — handles all pointer events */}
+      <div
+        ref={jarContainerRef}
+        style={{
+          position: 'relative',
+          zIndex:    2,
+          marginTop: isMobile ? 10 : 16,
+          width:     jarW,
+          height:    jarH,
+          cursor:   'pointer',
+        }}
+        onClick={handleJarClick}
+        onMouseMove={handleJarMouseMove}
+        onMouseLeave={() => setMousePos(null)}
+        onTouchStart={e => {
+          const rect = jarContainerRef.current?.getBoundingClientRect();
+          if (rect) setMousePos({ x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top });
+        }}
+        onTouchMove={handleJarTouchMove}
+        onTouchEnd={() => setMousePos(null)}
+      >
+        {/* Ripple rings on click/tap */}
+        {rippleRings.map(ring => (
+          <div key={ring.id} style={{
+            position:      'absolute',
+            left:           ring.x - 20,
+            top:            ring.y - 20,
+            width:           40,
+            height:          40,
+            borderRadius:   '50%',
+            border:         '2px solid rgba(201,184,240,0.65)',
+            pointerEvents:  'none',
+            zIndex:          10,
+            animation:      'rippleExpand 0.85s ease-out forwards',
+          }}/>
+        ))}
+
+        {/* Inner jar — wobble-only transform layer */}
         <div
-          onClick={() => { setJarWobble(true); setTimeout(() => setJarWobble(false), 600); }}
           style={{
             position:       'absolute',
             width:          '100%',
@@ -569,15 +727,23 @@ function HomePage({ onNavigate, stars, people }) {
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'center',
-            cursor:         'pointer',
+            pointerEvents:  'none',
           }}
         >
           <JarGlowPulse>
             {pulse => <JarSVG fillFraction={fillFraction} starCount={count} glowPulse={pulse} width={jarW} height={jarH}/>}
           </JarGlowPulse>
         </div>
-        {/* Stars sit in their own layer — unaffected by jar rotation */}
-        <FloatingStarsInJar floatingCount={floatingCount} fillFraction={fillFraction} jarW={jarW} jarH={jarH}/>
+
+        {/* Stars physics layer */}
+        <FloatingStarsInJar
+          floatingCount={floatingCount}
+          fillFraction={fillFraction}
+          jarW={jarW}
+          jarH={jarH}
+          mousePos={mousePos}
+          ripple={ripple}
+        />
       </div>
 
       {/* Buttons */}

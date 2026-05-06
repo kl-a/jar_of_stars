@@ -26,7 +26,20 @@ function PersonCard({ person, starCount, onClick }) {
           <NewBadge/>
         </div>
       )}
-      <AvatarDisplay avatarId={person.avatar_id} size={56}/>
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        {starCount >= 10 && (
+          <div style={{
+            position:     'absolute',
+            inset:         -4,
+            borderRadius: '50%',
+            border:       '2.5px solid #ffe066',
+            animation:    'haloGlow 2s ease-in-out infinite',
+            pointerEvents: 'none',
+            zIndex:        2,
+          }}/>
+        )}
+        <AvatarDisplay avatarId={person.avatar_id} size={56}/>
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: "'Fredoka'", fontSize: 16, color: '#2d2b3d', marginBottom: 6 }}>
           {person.name}

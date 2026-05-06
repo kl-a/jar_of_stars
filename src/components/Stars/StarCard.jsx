@@ -106,6 +106,25 @@ function StarCard({ star, people, onToggleFavourite, onExpand }) {
         }}>★</div>
       )}
 
+      {/* Dog-ear worn corner — sits outside overflow:hidden */}
+      {star.pull_count >= 10 && (
+        <div
+          title={`Pulled ${star.pull_count} times`}
+          style={{
+            position:    'absolute',
+            bottom:       0,
+            right:        0,
+            width:         0,
+            height:        0,
+            borderStyle:  'solid',
+            borderWidth:  '0 0 20px 20px',
+            borderColor:  `transparent transparent #4a3f6e transparent`,
+            zIndex:        10,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {/* Inner card — overflow:hidden clips the foil overlays cleanly */}
       <div
         ref={cardRef}

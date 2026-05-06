@@ -16,6 +16,9 @@ class Store {
       this.people   = [];
       this.isOnboarded = false;
     }
+    // Migrate legacy records that pre-date the created_at field
+    const _now = new Date().toISOString();
+    this.stars = this.stars.map(s => s.created_at ? s : { ...s, created_at: _now });
     this._listeners = [];
   }
 
@@ -156,8 +159,9 @@ class Store {
 
   // skipSync: true when called by driveSync itself (avoids immediate write-back after load)
   importDatabase(db, skipSync = false) {
-    this.stars       = db.stars  || [];
-    this.people      = db.people || [];
+    const _now = new Date().toISOString();
+    this.stars   = (db.stars || []).map(s => s.created_at ? s : { ...s, created_at: _now });
+    this.people  = db.people || [];
     this.isOnboarded = true;
     this._notify();
     if (!skipSync) window.driveSync?.scheduleSave();

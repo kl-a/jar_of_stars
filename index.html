@@ -59,6 +59,16 @@
       100% { filter: hue-rotate(360deg); }
     }
 
+    @keyframes rippleExpand {
+      0%   { transform: scale(0.2); opacity: 0.75; }
+      100% { transform: scale(5.5); opacity: 0;    }
+    }
+
+    @keyframes haloGlow {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,224,102,0.6), 0 0 18px rgba(255,224,102,0.25); }
+      50%       { box-shadow: 0 0 14px rgba(255,224,102,0.95), 0 0 30px rgba(255,224,102,0.5); }
+    }
+
     @keyframes twinkle {
       0%   { opacity: 0.2; }
       100% { opacity: 0.9; }

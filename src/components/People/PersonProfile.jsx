@@ -69,7 +69,7 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
     maxWidth:      540,
     maxHeight:    '90vh',
     overflowY:    'auto',
-    padding:      '24px 20px 40px',
+    padding:      '24px 20px 80px',
     transform:     visible ? 'translateY(0)' : 'translateY(100%)',
     opacity:       visible ? 1 : 0,
     transition:   'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s ease',
