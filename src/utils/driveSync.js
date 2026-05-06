@@ -15,15 +15,17 @@
   const FILE_NAME  = 'jar-of-stars.json';
   const SYNC_DELAY = 3000; // ms debounce before writing
 
-  let _tokenClient = null;
-  let _token       = null;
-  let _tokenExpiry = 0;
-  let _fileId      = null;
-  let _userInfo    = null;
-  let _syncTimer   = null;
-  let _configured  = !CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID');
+  let _tokenClient  = null;
+  let _token        = null;
+  let _tokenExpiry  = 0;
+  let _fileId       = null;
+  let _userInfo     = null;
+  let _syncTimer    = null;
+  let _configured   = !CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID');
+  let _isRefreshing = false; // true during a silent token refresh
+  let _pendingSave  = false; // save was queued while refresh was in flight
 
-  // 'signed-out' | 'signing-in' | 'loading' | 'syncing' | 'synced' | 'error'
+  // 'signed-out' | 'signing-in' | 'loading' | 'syncing' | 'synced' | 'error' | 'session-expired'
   let _status    = 'signed-out';
   let _listeners = [];
 
@@ -99,12 +101,24 @@
 
   async function _onToken(response) {
     if (response.error) {
+      _isRefreshing = false;
       _setStatus('signed-out');
       return;
     }
     _token       = response.access_token;
     _tokenExpiry = Date.now() + (response.expires_in - 60) * 1000;
     localStorage.setItem('josConnected', '1');
+
+    // Silent token refresh — just update the token and flush any queued save
+    if (_isRefreshing) {
+      _isRefreshing = false;
+      _setStatus('synced');
+      if (_pendingSave) {
+        _pendingSave = false;
+        driveSync.scheduleSave();
+      }
+      return;
+    }
 
     _setStatus('loading');
     try {
@@ -131,8 +145,14 @@
       scope:          SCOPE,
       callback:       _onToken,
       error_callback: () => {
-        localStorage.removeItem('josConnected');
-        _setStatus('signed-out');
+        _isRefreshing = false;
+        if (localStorage.getItem('josConnected')) {
+          // Was connected — session expired rather than never signed in
+          _setStatus('session-expired');
+        } else {
+          localStorage.removeItem('josConnected');
+          _setStatus('signed-out');
+        }
       },
     });
   }
@@ -168,6 +188,8 @@
     // Call directly from button onClick — synchronous so iOS Safari allows the popup
     signIn() {
       if (!_configured) return;
+      _isRefreshing = false; // explicit sign-in always does a full load
+      _pendingSave  = false;
       _setStatus('signing-in');
       try {
         _ensureClient();
@@ -189,7 +211,21 @@
     },
 
     scheduleSave() {
-      if (!driveSync.isSignedIn()) return;
+      if (!driveSync.isSignedIn()) {
+        // Token expired mid-session — try a silent refresh first
+        if (localStorage.getItem('josConnected') && !_isRefreshing) {
+          _isRefreshing = true;
+          _pendingSave  = true;
+          try {
+            _ensureClient();
+            _tokenClient.requestAccessToken({ prompt: '' });
+          } catch (e) {
+            _isRefreshing = false;
+            _setStatus('session-expired');
+          }
+        }
+        return;
+      }
       clearTimeout(_syncTimer);
       _syncTimer = setTimeout(async () => {
         _setStatus('syncing');

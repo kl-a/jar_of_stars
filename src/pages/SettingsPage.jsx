@@ -92,6 +92,37 @@ function SettingsPage({ stars, people }) {
                 {driveStatus === 'signing-in' ? '⏳ Signing in…' : 'Sign in with Google'}
               </PixelButton>
             </>
+          ) : driveStatus === 'session-expired' ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                {driveUser?.picture && (
+                  <img
+                    src={driveUser.picture}
+                    alt=""
+                    style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid #c98a88', flexShrink: 0, opacity: 0.7 }}
+                  />
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Fredoka'", fontSize: 13, color: '#2d2b3d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {driveUser?.email || 'Google Account'}
+                  </div>
+                  <div style={{ fontFamily: "'Fredoka'", fontSize: 12, color: '#c98a88', marginTop: 2 }}>
+                    ⚠ Session expired
+                  </div>
+                </div>
+              </div>
+              <div style={bodyTextStyle}>
+                Your sync session has expired. Tap below to reconnect — your memories are safe.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <PixelButton onClick={() => window.driveSync.signIn()} color="#ffeaa7" shadowColor="#c9a84c" small>
+                  ↺ Reconnect
+                </PixelButton>
+                <PixelButton onClick={() => window.driveSync.signOut()} color="#9b89c4" shadowColor="#7a6fa0" textColor="#fdfcff" small>
+                  Sign Out
+                </PixelButton>
+              </div>
+            </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               {driveUser?.picture && (
