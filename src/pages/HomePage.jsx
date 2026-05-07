@@ -117,15 +117,17 @@ function StarfieldCanvas() {
     window.addEventListener('resize', resize);
 
     // Drifting background stars (night + dawn)
+    // sharp stars blink on/off; normal stars breathe with a wider range
     const bgStars = Array.from({ length: 120 }, () => ({
       x:             Math.random() * window.innerWidth,
       y:             Math.random() * window.innerHeight,
       size:          Math.random() < 0.25 ? 2 : 1,
-      brightness:    0.3 + Math.random() * 0.7,
-      twinkleSpeed:  0.008 + Math.random() * 0.018,
+      brightness:    0.4 + Math.random() * 0.6,
+      twinkleSpeed:  0.012 + Math.random() * 0.030,
       twinkleOffset: Math.random() * Math.PI * 2,
       vx:            (Math.random() - 0.5) * 0.08,
       vy:            (Math.random() - 0.5) * 0.04,
+      sharp:         Math.random() < 0.28, // true blink — spends half the cycle near-dark
     }));
 
     // Shooting stars (night only)
@@ -184,7 +186,10 @@ function StarfieldCanvas() {
           if (s.x > W + 2) s.x = -2;
           if (s.y < -2)    s.y = H + 2;
           if (s.y > H + 2) s.y = -2;
-          const b = s.brightness * (0.65 + 0.35 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
+          const t = Math.sin(frame * s.twinkleSpeed + s.twinkleOffset);
+          const b = s.sharp
+            ? s.brightness * Math.pow(Math.max(0, t), 2)
+            : s.brightness * (0.1 + 0.9 * (0.5 + 0.5 * t));
           ctx.fillStyle = `rgba(253,252,255,${b})`;
           ctx.fillRect(Math.round(s.x), Math.round(s.y), s.size, s.size);
         });
@@ -289,7 +294,10 @@ function StarfieldCanvas() {
           if (s.y < -2) s.y = H + 2; if (s.y > H + 2) s.y = -2;
           const fade = Math.max(0, 1 - s.y / (H * 0.62));
           if (fade <= 0) return;
-          const b = s.brightness * fade * (0.65 + 0.35 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
+          const t = Math.sin(frame * s.twinkleSpeed + s.twinkleOffset);
+          const b = (s.sharp
+            ? s.brightness * Math.pow(Math.max(0, t), 2)
+            : s.brightness * (0.1 + 0.9 * (0.5 + 0.5 * t))) * fade;
           ctx.fillStyle = `rgba(253,252,255,${b})`;
           ctx.fillRect(Math.round(s.x), Math.round(s.y), s.size, s.size);
         });
@@ -327,7 +335,10 @@ function StarfieldCanvas() {
           if (s.y > H + 2) s.y = -2;
           const fade = Math.max(0, 1 - s.y / (H * 0.52));
           if (fade <= 0) return;
-          const b = s.brightness * 0.55 * fade * (0.7 + 0.3 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
+          const t = Math.sin(frame * s.twinkleSpeed + s.twinkleOffset);
+          const b = (s.sharp
+            ? s.brightness * Math.pow(Math.max(0, t), 2)
+            : s.brightness * (0.1 + 0.9 * (0.5 + 0.5 * t))) * 0.7 * fade;
           ctx.fillStyle = `rgba(253,252,255,${b})`;
           ctx.fillRect(Math.round(s.x), Math.round(s.y), 1, 1);
         });
@@ -656,6 +667,88 @@ function JarGlowPulse({ children }) {
   return children(pulse);
 }
 
+function FloatingPresent() {
+  const elemRef  = React.useRef(null);
+  const stateRef = React.useRef(null);
+  const rafRef   = React.useRef(null);
+  const timerRef = React.useRef(null);
+  const [visible, setVisible] = React.useState(false);
+
+  function scheduleNext() {
+    // Appear every 1–3 minutes
+    timerRef.current = setTimeout(spawn, 60000 + Math.random() * 120000);
+  }
+
+  function spawn() {
+    const fromRight = Math.random() < 0.5;
+    stateRef.current = {
+      startX:    fromRight ? window.innerWidth + 60 : -60,
+      endX:      fromRight ? -120 : window.innerWidth + 120,
+      baseY:     window.innerHeight * (0.08 + Math.random() * 0.28),
+      duration:  24000 + Math.random() * 14000,
+      startTime: Date.now(),
+    };
+    setVisible(true);
+  }
+
+  function animate() {
+    const s  = stateRef.current;
+    const el = elemRef.current;
+    if (!s || !el) return;
+    const elapsed  = Date.now() - s.startTime;
+    const progress = elapsed / s.duration;
+    if (progress >= 1) {
+      setVisible(false);
+      stateRef.current = null;
+      scheduleNext();
+      return;
+    }
+    el.style.left = `${s.startX + (s.endX - s.startX) * progress}px`;
+    el.style.top  = `${s.baseY + Math.sin(elapsed * 0.0016) * 10}px`;
+    rafRef.current = requestAnimationFrame(animate);
+  }
+
+  React.useEffect(() => {
+    scheduleNext();
+    return () => { clearTimeout(timerRef.current); cancelAnimationFrame(rafRef.current); };
+  }, []);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <div ref={elemRef} style={{ position: 'fixed', pointerEvents: 'none', zIndex: 3, transform: 'translateX(-50%)' }}>
+      <svg width="40" height="82" viewBox="0 0 40 82" style={{ overflow: 'visible' }}>
+        {/* Balloon body */}
+        <ellipse cx="20" cy="18" rx="14" ry="16" fill="#f7cac9" stroke="#c98a88" strokeWidth="1.5"/>
+        {/* Balloon highlight */}
+        <ellipse cx="13" cy="11" rx="4" ry="3" fill="#fdfcff" opacity="0.32" transform="rotate(-20 13 11)"/>
+        {/* Knot */}
+        <ellipse cx="20" cy="35" rx="2.5" ry="2" fill="#c98a88"/>
+        {/* String — wavy like AC */}
+        <path d="M20 37 Q15 49 20 57 Q25 65 20 71" stroke="#9b89c4" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+        {/* Present box */}
+        <rect x="9" y="71" width="22" height="16" rx="1.5" fill="#c9b8f0" stroke="#7a6fa0" strokeWidth="1.5"/>
+        {/* Ribbon vertical */}
+        <rect x="18" y="71" width="4" height="16" fill="#ffeaa7"/>
+        {/* Ribbon horizontal */}
+        <rect x="9"  y="77" width="22" height="4" fill="#ffeaa7"/>
+        {/* Bow left loop */}
+        <ellipse cx="15" cy="71" rx="5.5" ry="2.5" fill="#ffe066" stroke="#c9a84c" strokeWidth="0.8" transform="rotate(-28 15 71)"/>
+        {/* Bow right loop */}
+        <ellipse cx="25" cy="71" rx="5.5" ry="2.5" fill="#ffe066" stroke="#c9a84c" strokeWidth="0.8" transform="rotate(28 25 71)"/>
+        {/* Bow centre */}
+        <ellipse cx="20" cy="71" rx="2.8" ry="2.2" fill="#ffeaa7" stroke="#c9a84c" strokeWidth="0.8"/>
+      </svg>
+    </div>
+  );
+}
+
 function SoundToggle() {
   const [on, setOn] = React.useState(() => localStorage.getItem('josSoundEnabled') !== 'false');
   function toggle() {
@@ -759,6 +852,7 @@ function HomePage({ onNavigate, stars, people }) {
       overflow:      'hidden',
     }}>
       <StarfieldCanvas/>
+      <FloatingPresent/>
       <SoundToggle/>
       <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
         <InlineSyncStatus/>
