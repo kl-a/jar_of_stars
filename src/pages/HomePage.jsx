@@ -728,9 +728,6 @@ function FloatingPresent({ people }) {
     setPalette(_BALLOON_PALETTES[Math.floor(Math.random() * _BALLOON_PALETTES.length)]);
   }
 
-  // Expose doSpawn so the test button in HomePage can call it
-  React.useEffect(() => { if (spawnRef) spawnRef.current = doSpawn; });
-
   function animate() {
     const s  = stateRef.current;
     const el = elemRef.current;
