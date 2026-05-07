@@ -13,7 +13,7 @@ function InlineSyncStatus() {
 
   const isOnline  = ['loading', 'syncing', 'synced'].includes(status);
   const isSyncing = ['loading', 'syncing'].includes(status);
-  const label     = isSyncing ? 'Syncing…' : isOnline ? 'Synced' : status === 'session-expired' ? 'Reconnect' : 'Sign In';
+  const label     = isSyncing ? 'Syncing…' : isOnline ? 'Synced' : status === 'session-expired' ? 'Offline · Reconnect' : 'Offline · Sign In';
 
   return (
     <div
