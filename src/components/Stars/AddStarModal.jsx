@@ -23,7 +23,7 @@ const _addStarLabelStyle = {
   marginBottom:  6,
 };
 
-function AddStarModal({ onClose, onAdded, people }) {
+function AddStarModal({ onClose, onAdded, people, promptContext = null }) {
   const [message,   setMessage]   = React.useState('');
   const [personIds, setPersonIds] = React.useState([]);
   const [date,      setDate]      = React.useState(new Date().toISOString().split('T')[0]);
@@ -78,6 +78,22 @@ function AddStarModal({ onClose, onAdded, people }) {
           <PixelStar size={16}/>
           <span style={{ fontFamily: "'Fredoka'", fontSize: 18, color: '#2d2b3d' }}>Add a Star</span>
         </div>
+
+        {promptContext && (
+          <div style={{
+            background:   'rgba(22,33,62,0.5)',
+            border:       '1.5px solid #7a6fa0',
+            borderRadius:  6,
+            padding:      '10px 12px',
+            marginBottom:  16,
+            fontFamily:   "'Fredoka'",
+            fontSize:      13,
+            color:        '#c9b8f0',
+            lineHeight:    1.8,
+          }}>
+            🎈 {promptContext}
+          </div>
+        )}
 
         <label style={_addStarLabelStyle}>MEMORY ✦</label>
         <textarea

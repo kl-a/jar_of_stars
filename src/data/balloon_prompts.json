@@ -1,0 +1,185 @@
+{
+  "version": "1.0.0",
+  "prompts": [
+    {
+      "id": "prompt_001",
+      "text": "What's something small that made you smile this week that you almost didn't notice?",
+      "category": "small_magic",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_002",
+      "text": "What's a smell that brings back a good memory and what is it?",
+      "category": "small_magic",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_003",
+      "text": "What's the best meal you've eaten recently, and who were you with?",
+      "category": "small_magic",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_004",
+      "text": "What's a tiny act of kindness someone showed you that you still think about?",
+      "category": "small_magic",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_005",
+      "text": "What's something you saw outside today that was quietly beautiful?",
+      "category": "small_magic",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_006",
+      "text": "Who made you feel truly seen recently, and how?",
+      "category": "people",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_007",
+      "text": "What's something someone said to you that you've carried with you ever since?",
+      "category": "people",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_008",
+      "text": "Who would you call if you just wanted to hear their voice right now?",
+      "category": "people",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_009",
+      "text": "What's a moment where a stranger was unexpectedly kind to you?",
+      "category": "people",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_010",
+      "text": "Who in your life makes ordinary days feel special just by being there?",
+      "category": "people",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_011",
+      "text": "What's the last time you tried something for the first time? How did it feel?",
+      "category": "firsts_and_adventures",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_012",
+      "text": "What's a place you visited that felt like it was made just for you?",
+      "category": "firsts_and_adventures",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_013",
+      "text": "What's a trip — even just across town — that surprised you?",
+      "category": "firsts_and_adventures",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_014",
+      "text": "What's a decision you made that scared you but turned out beautifully?",
+      "category": "firsts_and_adventures",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_015",
+      "text": "What's something you learned to do that you're quietly proud of?",
+      "category": "firsts_and_adventures",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_016",
+      "text": "What's a place where you feel completely at ease?",
+      "category": "comfort_and_safety",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_017",
+      "text": "What's a ritual or routine that feels like a little hug to yourself?",
+      "category": "comfort_and_safety",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_018",
+      "text": "What's a rainy day that was actually perfect?",
+      "category": "comfort_and_safety",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_019",
+      "text": "What's something you do just for yourself that makes life feel richer?",
+      "category": "comfort_and_safety",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_020",
+      "text": "What's a moment where you felt completely held by the people around you?",
+      "category": "comfort_and_safety",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_021",
+      "text": "What's something that made you laugh so hard you couldn't breathe?",
+      "category": "laughter",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_022",
+      "text": "What's an inside joke that still makes you smile just thinking about it?",
+      "category": "laughter",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_023",
+      "text": "What's the silliest thing you've done with someone you love?",
+      "category": "laughter",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_024",
+      "text": "What's a moment that was embarrassing at the time but is hilarious now?",
+      "category": "laughter",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_025",
+      "text": "What's something a child said or did that completely delighted you?",
+      "category": "laughter",
+      "weight": "common"
+    },
+    {
+      "id": "prompt_026",
+      "text": "What's a version of yourself from the past that you feel grateful for?",
+      "category": "reflective",
+      "weight": "rare"
+    },
+    {
+      "id": "prompt_027",
+      "text": "What's something you used to worry about that turned out okay?",
+      "category": "reflective",
+      "weight": "rare"
+    },
+    {
+      "id": "prompt_028",
+      "text": "What's a moment where you surprised yourself?",
+      "category": "reflective",
+      "weight": "rare"
+    },
+    {
+      "id": "prompt_029",
+      "text": "What's something you're slowly getting better at, and when did you first notice?",
+      "category": "reflective",
+      "weight": "rare"
+    },
+    {
+      "id": "prompt_030",
+      "text": "What's a memory you're glad you have — one you almost didn't make?",
+      "category": "reflective",
+      "weight": "rare"
+    }
+  ]
+}

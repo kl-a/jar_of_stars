@@ -429,6 +429,20 @@ const _FLOAT_SLOTS = Array.from({ length: 10 }, (_, i) => {
   };
 });
 
+// ── Balloon prompts ───────────────────────────────────────────────────────────
+let _prompts = [];
+fetch('src/data/balloon_prompts.json')
+  .then(r => r.json())
+  .then(data => { _prompts = data.prompts || []; })
+  .catch(() => {});
+
+function _pickPrompt() {
+  if (_prompts.length === 0) return null;
+  // common prompts appear 3× as often as rare ones
+  const pool = _prompts.flatMap(p => p.weight === 'rare' ? [p] : [p, p, p]);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // ── Audio ─────────────────────────────────────────────────────────────────────
 let _audioCtx      = null;
 let _lastTwinkleMs = 0;
@@ -667,19 +681,39 @@ function JarGlowPulse({ children }) {
   return children(pulse);
 }
 
-function FloatingPresent() {
+// Saturated konpeito-inspired palette — one picked randomly per balloon
+const _BALLOON_PALETTES = [
+  { fill: '#ff6b81', stroke: '#c44569' }, // vivid rose
+  { fill: '#a29bfe', stroke: '#6c5ce7' }, // vivid violet
+  { fill: '#55efc4', stroke: '#00b894' }, // vivid mint
+  { fill: '#ffd32a', stroke: '#f9a825' }, // vivid gold
+  { fill: '#fd79a8', stroke: '#e84393' }, // vivid pink
+  { fill: '#74b9ff', stroke: '#0984e3' }, // vivid sky-blue
+  { fill: '#ff7675', stroke: '#d63031' }, // vivid coral
+  { fill: '#6bcb77', stroke: '#27ae60' }, // vivid green
+];
+
+// ms until the clock next hits a multiple of 10 minutes
+function _msUntilNext10Min() {
+  return 600000 - (Date.now() % 600000);
+}
+
+function FloatingPresent({ people }) {
   const elemRef  = React.useRef(null);
   const stateRef = React.useRef(null);
   const rafRef   = React.useRef(null);
   const timerRef = React.useRef(null);
-  const [visible, setVisible] = React.useState(false);
+  const [palette,  setPalette]  = React.useState(null);
+  const [prompt,   setPrompt]   = React.useState(null);
+  const [showAdd,  setShowAdd]  = React.useState(false);
+  const lastPromptRef = React.useRef(null); // remembers prompt even after card is skipped
 
   function scheduleNext() {
-    // Appear every 1–3 minutes
-    timerRef.current = setTimeout(spawn, 60000 + Math.random() * 120000);
+    timerRef.current = setTimeout(doSpawn, _msUntilNext10Min());
   }
 
-  function spawn() {
+  function doSpawn() {
+    cancelAnimationFrame(rafRef.current);
     const fromRight = Math.random() < 0.5;
     stateRef.current = {
       startX:    fromRight ? window.innerWidth + 60 : -60,
@@ -688,8 +722,14 @@ function FloatingPresent() {
       duration:  24000 + Math.random() * 14000,
       startTime: Date.now(),
     };
-    setVisible(true);
+    const p = _pickPrompt();
+    lastPromptRef.current = p;
+    setPrompt(p);
+    setPalette(_BALLOON_PALETTES[Math.floor(Math.random() * _BALLOON_PALETTES.length)]);
   }
+
+  // Expose doSpawn so the test button in HomePage can call it
+  React.useEffect(() => { if (spawnRef) spawnRef.current = doSpawn; });
 
   function animate() {
     const s  = stateRef.current;
@@ -698,7 +738,8 @@ function FloatingPresent() {
     const elapsed  = Date.now() - s.startTime;
     const progress = elapsed / s.duration;
     if (progress >= 1) {
-      setVisible(false);
+      // Balloon exits — hide it but keep the prompt card until user acts
+      setPalette(null);
       stateRef.current = null;
       scheduleNext();
       return;
@@ -714,38 +755,95 @@ function FloatingPresent() {
   }, []);
 
   React.useEffect(() => {
-    if (!visible) return;
+    if (!palette) return;
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [visible]);
-
-  if (!visible) return null;
+  }, [palette]);
 
   return (
-    <div ref={elemRef} style={{ position: 'fixed', pointerEvents: 'none', zIndex: 3, transform: 'translateX(-50%)' }}>
-      <svg width="40" height="82" viewBox="0 0 40 82" style={{ overflow: 'visible' }}>
-        {/* Balloon body */}
-        <ellipse cx="20" cy="18" rx="14" ry="16" fill="#f7cac9" stroke="#c98a88" strokeWidth="1.5"/>
-        {/* Balloon highlight */}
-        <ellipse cx="13" cy="11" rx="4" ry="3" fill="#fdfcff" opacity="0.32" transform="rotate(-20 13 11)"/>
-        {/* Knot */}
-        <ellipse cx="20" cy="35" rx="2.5" ry="2" fill="#c98a88"/>
-        {/* String — wavy like AC */}
-        <path d="M20 37 Q15 49 20 57 Q25 65 20 71" stroke="#9b89c4" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-        {/* Present box */}
-        <rect x="9" y="71" width="22" height="16" rx="1.5" fill="#c9b8f0" stroke="#7a6fa0" strokeWidth="1.5"/>
-        {/* Ribbon vertical */}
-        <rect x="18" y="71" width="4" height="16" fill="#ffeaa7"/>
-        {/* Ribbon horizontal */}
-        <rect x="9"  y="77" width="22" height="4" fill="#ffeaa7"/>
-        {/* Bow left loop */}
-        <ellipse cx="15" cy="71" rx="5.5" ry="2.5" fill="#ffe066" stroke="#c9a84c" strokeWidth="0.8" transform="rotate(-28 15 71)"/>
-        {/* Bow right loop */}
-        <ellipse cx="25" cy="71" rx="5.5" ry="2.5" fill="#ffe066" stroke="#c9a84c" strokeWidth="0.8" transform="rotate(28 25 71)"/>
-        {/* Bow centre */}
-        <ellipse cx="20" cy="71" rx="2.8" ry="2.2" fill="#ffeaa7" stroke="#c9a84c" strokeWidth="0.8"/>
-      </svg>
-    </div>
+    <>
+      {/* Moving balloon */}
+      {palette && (
+        <div
+          ref={elemRef}
+          onClick={() => setPrompt(lastPromptRef.current)}
+          style={{ position: 'fixed', pointerEvents: 'all', zIndex: 3, transform: 'translateX(-50%)', cursor: 'pointer' }}
+        >
+          <svg width="40" height="68" viewBox="0 0 40 68" style={{ overflow: 'visible' }}>
+            {/* Balloon */}
+            <ellipse cx="20" cy="18" rx="14" ry="16" fill={palette.fill} stroke={palette.stroke} strokeWidth="1.5"/>
+            <ellipse cx="13" cy="11" rx="4" ry="3" fill="#fdfcff" opacity="0.32" transform="rotate(-20 13 11)"/>
+            {/* Knot */}
+            <ellipse cx="20" cy="35" rx="2.5" ry="2" fill={palette.stroke}/>
+            {/* Short wavy string */}
+            <path d="M20 37 Q16 41 20 45 Q24 49 20 53" stroke={palette.stroke} strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+            {/* Present box */}
+            <rect x="9" y="53" width="22" height="15" rx="1.5" fill="#c9b8f0" stroke="#7a6fa0" strokeWidth="1.5"/>
+            {/* Ribbon vertical — red */}
+            <rect x="18" y="53" width="4" height="15" fill="#ff4757"/>
+            {/* Ribbon horizontal — red */}
+            <rect x="9"  y="59" width="22" height="4" fill="#ff4757"/>
+            {/* Bow loops — red */}
+            <ellipse cx="15" cy="53" rx="5.5" ry="2.5" fill="#ff6b81" stroke="#c0392b" strokeWidth="0.8" transform="rotate(-28 15 53)"/>
+            <ellipse cx="25" cy="53" rx="5.5" ry="2.5" fill="#ff6b81" stroke="#c0392b" strokeWidth="0.8" transform="rotate(28 25 53)"/>
+            <ellipse cx="20" cy="53" rx="2.8" ry="2.2" fill="#ff4757" stroke="#c0392b" strokeWidth="0.8"/>
+          </svg>
+        </div>
+      )}
+
+      {/* Prompt card — stays until user writes a star or skips */}
+      {prompt && !showAdd && (
+        <div style={{
+          position:       'fixed',
+          bottom:          80,
+          left:           '50%',
+          transform:      'translateX(-50%)',
+          zIndex:          20,
+          width:          'calc(100% - 32px)',
+          maxWidth:        420,
+          background:     'rgba(22,33,62,0.94)',
+          border:         '2px solid #7a6fa0',
+          borderRadius:    10,
+          padding:        '16px 16px 14px',
+          backdropFilter: 'blur(8px)',
+          boxShadow:      '0 4px 24px rgba(0,0,0,0.4)',
+          animation:      'fadeIn 0.4s ease',
+        }}>
+          <div style={{ fontFamily: "'Fredoka'", fontSize: 11, color: '#7a6fa0', marginBottom: 8, letterSpacing: 1 }}>
+            🎈 A QUESTION FROM THE SKY
+          </div>
+          <div style={{ fontFamily: "'Fredoka'", fontSize: 15, color: '#c9b8f0', lineHeight: 1.7, marginBottom: 14 }}>
+            {prompt.text}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <PixelButton
+              onClick={() => setShowAdd(true)}
+              color="#b5ead7" shadowColor="#6aab90" textColor="#2d2b3d"
+              small
+            >
+              ✦ Write a Star
+            </PixelButton>
+            <PixelButton
+              onClick={() => setPrompt(null)}
+              color="#9b89c4" shadowColor="#7a6fa0" textColor="#fdfcff"
+              small
+            >
+              Skip
+            </PixelButton>
+          </div>
+        </div>
+      )}
+
+      {/* Add Star modal pre-loaded with prompt context */}
+      {showAdd && (
+        <AddStarModal
+          onClose={() => setShowAdd(false)}
+          onAdded={() => { setShowAdd(false); setPrompt(null); }}
+          people={people}
+          promptContext={prompt?.text}
+        />
+      )}
+    </>
   );
 }
 
@@ -852,7 +950,7 @@ function HomePage({ onNavigate, stars, people }) {
       overflow:      'hidden',
     }}>
       <StarfieldCanvas/>
-      <FloatingPresent/>
+      <FloatingPresent people={people}/>
       <SoundToggle/>
       <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
         <InlineSyncStatus/>
