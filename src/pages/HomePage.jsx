@@ -140,15 +140,6 @@ function StarfieldCanvas() {
       puffs: _CLOUD_PUFFS[i % _CLOUD_PUFFS.length],
     }));
 
-    // Birds (golden hour)
-    const birds = Array.from({ length: 22 }, () => ({
-      x:         Math.random() * window.innerWidth * 1.8 - window.innerWidth * 0.4,
-      y:         window.innerHeight * (0.06 + Math.random() * 0.56),
-      speed:     0.55 + Math.random() * 1.45,
-      wingPhase: Math.random() * Math.PI * 2,
-      wingSpeed: 0.030 + Math.random() * 0.030,
-      size:      3 + Math.random() * 5,
-    }));
 
     function spawnShootingStar() {
       if (pausedRef.current) return;
@@ -279,41 +270,41 @@ function StarfieldCanvas() {
 
       // ── Golden hour (4 pm – 6 pm) ─────────────────────────────────────────
       else if (period === 'golden') {
+        // Dark night sky dominates the upper two-thirds; warm sunset colours
+        // compressed into the lower third near the horizon
         _skyGradient(ctx, W, H, [
-          [0,    '#0a0818'],
-          [0.18, '#280840'],
-          [0.42, '#781828'],
-          [0.68, '#d84810'],
-          [0.85, '#f07818'],
+          [0,    '#04030e'],
+          [0.28, '#120828'],
+          [0.50, '#3a0e20'],
+          [0.68, '#8c2010'],
+          [0.82, '#d84810'],
+          [0.92, '#f07818'],
           [1,    '#f8b020'],
         ]);
 
+        // Stars fading out toward the warm horizon
+        bgStars.forEach(s => {
+          s.x += s.vx * 0.3; s.y += s.vy * 0.3;
+          if (s.x < -2) s.x = W + 2; if (s.x > W + 2) s.x = -2;
+          if (s.y < -2) s.y = H + 2; if (s.y > H + 2) s.y = -2;
+          const fade = Math.max(0, 1 - s.y / (H * 0.62));
+          if (fade <= 0) return;
+          const b = s.brightness * fade * (0.65 + 0.35 * Math.sin(frame * s.twinkleSpeed + s.twinkleOffset));
+          ctx.fillStyle = `rgba(253,252,255,${b})`;
+          ctx.fillRect(Math.round(s.x), Math.round(s.y), s.size, s.size);
+        });
+
         // Setting sun — large glow on the horizon
-        const sx = W * 0.50, sy = H * 0.86;
-        const sunG = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.32);
-        sunG.addColorStop(0,    'rgba(255,220,100,0.72)');
-        sunG.addColorStop(0.28, 'rgba(255,140, 30,0.44)');
-        sunG.addColorStop(0.65, 'rgba(220, 60,  0,0.18)');
+        const sx = W * 0.50, sy = H * 0.92;
+        const sunG = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.36);
+        sunG.addColorStop(0,    'rgba(255,220,100,0.80)');
+        sunG.addColorStop(0.22, 'rgba(255,140, 30,0.50)');
+        sunG.addColorStop(0.60, 'rgba(220, 60,  0,0.18)');
         sunG.addColorStop(1,    'rgba(220, 60,  0,0)');
         ctx.fillStyle = sunG;
-        ctx.beginPath(); ctx.arc(sx, sy, H * 0.32, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.36, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = 'rgba(255,210,80,0.90)';
-        ctx.beginPath(); ctx.arc(sx, sy, H * 0.052, 0, Math.PI * 2); ctx.fill();
-
-        // Birds flying silhouettes
-        birds.forEach(b => {
-          b.x += b.speed;
-          b.wingPhase += b.wingSpeed;
-          if (b.x > W + 50) b.x = -50;
-          const flap = Math.sin(b.wingPhase) * b.size * 0.55;
-          ctx.strokeStyle = 'rgba(8,4,20,0.80)';
-          ctx.lineWidth   = Math.max(1, b.size * 0.28);
-          ctx.lineCap     = 'round';
-          ctx.beginPath();
-          ctx.moveTo(b.x - b.size * 1.3, b.y - flap);
-          ctx.quadraticCurveTo(b.x, b.y + flap * 0.35, b.x + b.size * 1.3, b.y - flap);
-          ctx.stroke();
-        });
+        ctx.beginPath(); ctx.arc(sx, sy, H * 0.048, 0, Math.PI * 2); ctx.fill();
       }
 
       // ── Dawn (4 am – 9 am) ────────────────────────────────────────────────
