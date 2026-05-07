@@ -957,7 +957,7 @@ function HomePage({ onNavigate, stars, people }) {
         <div style={{ fontFamily: "'Fredoka'", fontSize: isMobile ? 22 : 28, color: '#fdfcff', letterSpacing: 2, textShadow: '2px 2px 0px #2d2b3d', fontWeight: 700 }}>
           Jar of Stars
         </div>
-        <div style={{ fontFamily: "'Fredoka'", fontSize: 14, color: '#9b89c4', marginTop: 6, letterSpacing: 1 }}>
+        <div style={{ fontFamily: "'Fredoka'", fontSize: 14, color: '#d4cce8', marginTop: 6, letterSpacing: 1 }}>
           {count === 0 ? 'add your first memory ✦' : `${count} memor${count === 1 ? 'y' : 'ies'} inside`}
         </div>
       </div>
