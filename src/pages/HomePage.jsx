@@ -665,6 +665,41 @@ function JarGlowPulse({ children }) {
   return children(pulse);
 }
 
+function SoundToggle() {
+  const [on, setOn] = React.useState(() => localStorage.getItem('josSoundEnabled') !== 'false');
+  function toggle() {
+    const next = !on;
+    setOn(next);
+    localStorage.setItem('josSoundEnabled', String(next));
+  }
+  return (
+    <button
+      onClick={toggle}
+      title={on ? 'Mute sounds' : 'Enable sounds'}
+      style={{
+        position:    'absolute',
+        top:          12,
+        left:         12,
+        zIndex:       10,
+        display:     'flex',
+        alignItems:  'center',
+        gap:          5,
+        background:  'rgba(22,33,62,0.80)',
+        border:      `1.5px solid ${on ? '#7a6fa0' : '#4a3f6e'}`,
+        borderRadius: 20,
+        padding:     '5px 10px',
+        cursor:      'pointer',
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      <span style={{ fontFamily: "'Fredoka'", fontSize: 13, color: on ? '#c9b8f0' : '#4a3f6e', lineHeight: 1 }}>♪</span>
+      <span style={{ fontFamily: "'Fredoka'", fontSize: 11, color: on ? '#9b89c4' : '#4a3f6e', lineHeight: 1 }}>
+        {on ? 'Sound' : 'Muted'}
+      </span>
+    </button>
+  );
+}
+
 function HomePage({ onNavigate, stars, people }) {
   const [showAdd,     setShowAdd]    = React.useState(false);
   const [showPull,    setShowPull]   = React.useState(null);
@@ -676,7 +711,8 @@ function HomePage({ onNavigate, stars, people }) {
   const jarContainerRef = React.useRef(null);
 
   const count         = stars.length;
-  const fillFraction  = Math.min(count / 120, 1);
+  // Liquid rises only at multiples of 10, one notch per 10 stars (full at 100)
+  const fillFraction  = Math.min(Math.floor(count / 10) / 10, 1);
   const floatingCount = count === 0 ? 0 : (count % 10 === 0 ? 10 : count % 10);
 
   function handlePull(favouritesOnly) {
@@ -732,6 +768,7 @@ function HomePage({ onNavigate, stars, people }) {
       overflow:      'hidden',
     }}>
       <StarfieldCanvas/>
+      <SoundToggle/>
 
       {/* Title */}
       <div style={{ marginTop: isMobile ? 16 : 28, position: 'relative', zIndex: 2, textAlign: 'center' }}>
@@ -765,6 +802,31 @@ function HomePage({ onNavigate, stars, people }) {
         onTouchMove={handleJarTouchMove}
         onTouchEnd={() => setMousePos(null)}
       >
+        {/* Measuring ruler — left of jar body, marks every 10 stars */}
+        <div style={{ position: 'absolute', right: '100%', top: 0, width: 38, height: jarH, pointerEvents: 'none' }}>
+          {Array.from({ length: 10 }, (_, i) => {
+            const n      = i + 1; // 1–10 (bottom to top)
+            const yPx    = jarH * (0.89 - n * 0.057);
+            const filled = Math.floor(count / 10) >= n;
+            return (
+              <div key={n} style={{
+                position:  'absolute',
+                top:        yPx,
+                right:      0,
+                display:   'flex',
+                alignItems: 'center',
+                gap:         3,
+                transform: 'translateY(-50%)',
+              }}>
+                <span style={{ fontFamily: "'Fredoka'", fontSize: 9, color: filled ? '#ffe066' : '#4a3f6e', lineHeight: 1 }}>
+                  {n * 10}
+                </span>
+                <div style={{ width: filled ? 8 : 5, height: 2, background: filled ? '#ffe066' : '#4a3f6e', borderRadius: 1 }}/>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Ripple rings on click/tap */}
         {rippleRings.map(ring => (
           <div key={ring.id} style={{

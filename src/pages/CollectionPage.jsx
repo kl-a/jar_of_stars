@@ -4,6 +4,7 @@
 
 function CollectionPage({ stars, people, onNavigate }) {
   const [expandedStar, setExpandedStar] = React.useState(null);
+  const [showAdd,      setShowAdd]      = React.useState(false);
   const [favOnly,      setFavOnly]      = React.useState(false);
   const [filterPerson, setFilterPerson] = React.useState('');
   const [filterTag,    setFilterTag]    = React.useState('');
@@ -48,7 +49,7 @@ function CollectionPage({ stars, people, onNavigate }) {
   return (
     <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <PixelStar size={16}/>
         <span style={{ fontFamily: "'Fredoka'", fontSize: 18, color: '#fdfcff' }}>Collection</span>
         <span style={{
@@ -62,6 +63,10 @@ function CollectionPage({ stars, people, onNavigate }) {
           color:       '#fdfcff',
           boxShadow:   '2px 2px 0 #7a6fa0',
         }}>{stars.length}</span>
+        <PixelButton onClick={() => setShowAdd(true)} color="#b5ead7" shadowColor="#6aab90" textColor="#2d2b3d" small>
+          + Star
+        </PixelButton>
+        <InlineSyncStatus/>
       </div>
 
       {/* Search */}
@@ -180,6 +185,14 @@ function CollectionPage({ stars, people, onNavigate }) {
           onClose={() => setExpandedStar(null)}
           onToggleFavourite={handleToggleFavourite}
           onDelete={handleDelete}
+        />
+      )}
+
+      {showAdd && (
+        <AddStarModal
+          onClose={() => setShowAdd(false)}
+          onAdded={() => setShowAdd(false)}
+          people={people}
         />
       )}
     </div>

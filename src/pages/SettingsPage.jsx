@@ -124,6 +124,9 @@ function SettingsPage({ stars, people }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
         <span style={{ fontSize: 16 }}>⚙</span>
         <span style={{ fontFamily: "'Fredoka'", fontSize: 18, color: '#fdfcff' }}>Settings</span>
+        <div style={{ marginLeft: 'auto' }}>
+          <InlineSyncStatus/>
+        </div>
       </div>
 
       {/* Google Drive Sync */}

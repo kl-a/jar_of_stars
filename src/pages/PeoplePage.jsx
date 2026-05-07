@@ -103,7 +103,7 @@ function PeoplePage({ people, stars, onUpdate }) {
   return (
     <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <span style={{ fontSize: 18 }}>👥</span>
         <span style={{ fontFamily: "'Fredoka'", fontSize: 18, color: '#fdfcff' }}>People</span>
         <span style={{
@@ -120,6 +120,7 @@ function PeoplePage({ people, stars, onUpdate }) {
         <PixelButton onClick={() => setShowAddPerson(true)} color="#b5ead7" shadowColor="#6aab90" textColor="#2d2b3d" small>
           + Add
         </PixelButton>
+        <InlineSyncStatus/>
       </div>
 
       {/* Search */}

@@ -2,55 +2,6 @@
 // Next.js migration: move NavBar to src/components/Layout/NavBar.tsx,
 // App becomes app/layout.tsx + app/page.tsx.
 
-function SoundToggle() {
-  const [on, setOn] = React.useState(() => localStorage.getItem('josSoundEnabled') !== 'false');
-
-  function toggle() {
-    const next = !on;
-    setOn(next);
-    localStorage.setItem('josSoundEnabled', String(next));
-  }
-
-  return (
-    <button
-      onClick={toggle}
-      title={on ? 'Mute sounds' : 'Enable sounds'}
-      style={{
-        position:    'fixed',
-        top:          14,
-        left:         14,
-        zIndex:       60,
-        display:     'flex',
-        alignItems:  'center',
-        gap:          6,
-        background:  'rgba(22,33,62,0.88)',
-        border:      `1.5px solid ${on ? '#7a6fa0' : '#4a3f6e'}`,
-        borderRadius: 20,
-        padding:     '5px 10px',
-        cursor:      'pointer',
-        backdropFilter: 'blur(4px)',
-      }}
-    >
-      <span style={{
-        fontFamily: "'Fredoka'",
-        fontSize:    13,
-        color:       on ? '#c9b8f0' : '#4a3f6e',
-        lineHeight:  1,
-      }}>
-        {on ? '♪' : '♪'}
-      </span>
-      <span style={{
-        fontFamily: "'Fredoka'",
-        fontSize:    11,
-        color:       on ? '#9b89c4' : '#4a3f6e',
-        lineHeight:  1,
-      }}>
-        {on ? 'Sound' : 'Muted'}
-      </span>
-    </button>
-  );
-}
-
 function DriveStatusBadge() {
   const [status, setStatus] = React.useState(() => window.driveSync?.getStatus() || 'signed-out');
 
@@ -246,8 +197,6 @@ function App() {
         <OnboardingFlow onComplete={refreshStore}/>
       ) : (
         <>
-          <SoundToggle/>
-          <DriveStatusBadge/>
           <NavBar page={page} onNavigate={setPage}/>
           <div style={contentStyle}>
             {page === 'home' && (

@@ -24,6 +24,7 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
   const [avatarId,         setAvatarId]         = React.useState(person.avatar_id);
   const [showAvatarPicker, setShowAvatarPicker] = React.useState(false);
   const [confirmDelete,    setConfirmDelete]    = React.useState(false);
+  const [saveFlash,        setSaveFlash]        = React.useState(false);
 
   React.useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
@@ -45,6 +46,17 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
   function saveNote() {
     window.store.updatePerson(person.people_id, { note });
     onUpdate();
+  }
+
+  function handleSave() {
+    if (name.trim()) {
+      window.store.updatePerson(person.people_id, { name: name.trim(), note });
+    } else {
+      window.store.updatePerson(person.people_id, { note });
+    }
+    onUpdate();
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 2000);
   }
 
   function selectAvatar(id) {
@@ -199,6 +211,17 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
             No stars linked yet. Mention {person.name} when adding a memory.
           </div>
         )}
+
+        {/* Save */}
+        <div style={{ marginBottom: 16 }}>
+          <PixelButton
+            onClick={handleSave}
+            color="#b5ead7" shadowColor="#6aab90" textColor="#2d2b3d"
+            small
+          >
+            {saveFlash ? '✓ Saved!' : 'Save Changes'}
+          </PixelButton>
+        </div>
 
         {/* Delete */}
         {confirmDelete ? (

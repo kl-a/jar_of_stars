@@ -8,7 +8,10 @@ function ModalOverlay({ children, onClose, center = false }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position:       'fixed',
-        inset:           0,
+        top:             0,
+        left:            0,
+        right:           0,
+        bottom:          64, // clear the nav bar on all devices
         zIndex:          100,
         background:     'rgba(13,13,40,0.82)',
         display:        'flex',
