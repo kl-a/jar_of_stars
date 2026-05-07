@@ -769,6 +769,9 @@ function HomePage({ onNavigate, stars, people }) {
     }}>
       <StarfieldCanvas/>
       <SoundToggle/>
+      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+        <InlineSyncStatus/>
+      </div>
 
       {/* Title */}
       <div style={{ marginTop: isMobile ? 16 : 28, position: 'relative', zIndex: 2, textAlign: 'center' }}>
