@@ -724,7 +724,6 @@ function FloatingPresent({ people }) {
     };
     const p = _pickPrompt();
     lastPromptRef.current = p;
-    setPrompt(p);
     setPalette(_BALLOON_PALETTES[Math.floor(Math.random() * _BALLOON_PALETTES.length)]);
   }
 
