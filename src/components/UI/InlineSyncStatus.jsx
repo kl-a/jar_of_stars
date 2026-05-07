@@ -16,25 +16,27 @@ function InlineSyncStatus() {
   const label     = isSyncing ? 'Syncing…' : isOnline ? 'Synced' : status === 'session-expired' ? 'Reconnect' : 'Sign In';
 
   return (
-    <button
+    <div
       onClick={!isOnline ? () => window.driveSync.signIn() : undefined}
       style={{
-        display:    'flex',
-        alignItems: 'center',
-        gap:         4,
-        background: 'none',
-        border:     'none',
-        cursor:      !isOnline ? 'pointer' : 'default',
-        padding:     0,
-        flexShrink:  0,
+        display:        'flex',
+        alignItems:     'center',
+        gap:             6,
+        background:     'rgba(22,33,62,0.88)',
+        border:         `1.5px solid ${isOnline ? '#6aab90' : '#4a3f6e'}`,
+        borderRadius:    20,
+        padding:        '5px 10px 5px 8px',
+        cursor:          !isOnline ? 'pointer' : 'default',
+        backdropFilter: 'blur(4px)',
+        transition:     'border-color 0.4s ease',
+        flexShrink:      0,
       }}
     >
       <div style={{
-        display:   'flex',
         flexShrink: 0,
         animation:  isOnline && !isSyncing ? 'starGlow 2.5s ease-in-out infinite' : 'none',
       }}>
-        <PixelStar size={9} color={isOnline ? '#b5ead7' : '#4a3f6e'} shadowColor={isOnline ? '#6aab90' : '#2d2b3d'}/>
+        <PixelStar size={10} color={isOnline ? '#b5ead7' : '#4a3f6e'} shadowColor={isOnline ? '#6aab90' : '#2d2b3d'}/>
       </div>
       <span style={{
         fontFamily: "'Fredoka'",
@@ -45,7 +47,7 @@ function InlineSyncStatus() {
       }}>
         {label}
       </span>
-    </button>
+    </div>
   );
 }
 
