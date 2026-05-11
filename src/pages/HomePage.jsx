@@ -889,8 +889,8 @@ function HomePage({ onNavigate, stars, people }) {
   const jarContainerRef = React.useRef(null);
 
   const count         = stars.length;
-  // Liquid rises only at multiples of 10, one notch per 10 stars (full at 100)
-  const fillFraction  = Math.min(Math.floor(count / 10) / 10, 1);
+  // Liquid fills linearly — ruler marks sit at exact multiples of 10 stars (full at 100)
+  const fillFraction  = Math.min(count / 100, 1);
   const floatingCount = count === 0 ? 0 : (count % 10 === 0 ? 10 : count % 10);
 
   function handlePull(favouritesOnly) {

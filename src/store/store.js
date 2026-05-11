@@ -45,7 +45,7 @@ class Store {
 
   // ── Star actions ────────────────────────────────────────────────────────────
 
-  addStar({ message, from_people_ids = [], date, tags = [], favourite = false }) {
+  addStar({ message, from_people_ids = [], date, tags = [], favourite = false, question = null }) {
     const now = new Date().toISOString();
     const star = {
       star_id:         generateId(),
@@ -57,6 +57,7 @@ class Store {
       pull_count:      0,
       created_at:      now,
       updated_at:      now,
+      ...(question ? { question } : {}),
     };
     this.stars = [star, ...this.stars];
     from_people_ids.forEach(pid => {

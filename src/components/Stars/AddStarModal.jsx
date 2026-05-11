@@ -36,7 +36,7 @@ function AddStarModal({ onClose, onAdded, people, promptContext = null }) {
 
   function handleSave() {
     if (!message.trim()) return;
-    const star = window.store.addStar({ message: message.trim(), from_people_ids: personIds, date, tags });
+    const star = window.store.addStar({ message: message.trim(), from_people_ids: personIds, date, tags, question: promptContext || null });
     setVisible(false);
     setTimeout(() => { onAdded(star); onClose(); }, 300);
   }

@@ -187,6 +187,21 @@ function StarExpandModal({ star, people, onClose, onToggleFavourite, onDelete })
         ) : (
           /* ── Read-only view ─────────────────────────────────────────── */
           <>
+            {star.question && (
+              <div style={{
+                background:   'rgba(22,33,62,0.5)',
+                border:       '1.5px solid #7a6fa0',
+                borderRadius:  6,
+                padding:      '8px 12px',
+                marginBottom:  12,
+                fontFamily:   "'Fredoka'",
+                fontSize:      12,
+                color:        '#c9b8f0',
+                lineHeight:    1.7,
+              }}>
+                🎈 {star.question}
+              </div>
+            )}
             <div style={{
               fontFamily:  "'Fredoka'",
               fontSize:     14,

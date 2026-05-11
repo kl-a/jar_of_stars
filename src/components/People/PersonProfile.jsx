@@ -25,6 +25,7 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
   const [showAvatarPicker, setShowAvatarPicker] = React.useState(false);
   const [confirmDelete,    setConfirmDelete]    = React.useState(false);
   const [saveFlash,        setSaveFlash]        = React.useState(false);
+  const [expandedStar,     setExpandedStar]     = React.useState(null);
 
   React.useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
@@ -185,26 +186,26 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
         </div>
         {linkedStars.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-            {linkedStars.slice(0, 5).map(s => (
-              <div key={s.star_id} style={{
-                background:   s.favourite ? '#f7cac9' : 'rgba(201,184,240,0.5)',
-                border:       `2px solid ${s.favourite ? '#c98a88' : '#7a6fa0'}`,
-                borderRadius:  6,
-                padding:      '10px 12px',
-                fontFamily:   "'Fredoka'",
-                fontSize:      12,
-                color:        '#2d2b3d',
-                lineHeight:    1.8,
-              }}>
+            {linkedStars.map(s => (
+              <div
+                key={s.star_id}
+                onClick={() => setExpandedStar(s)}
+                style={{
+                  background:   s.favourite ? '#f7cac9' : 'rgba(201,184,240,0.5)',
+                  border:       `2px solid ${s.favourite ? '#c98a88' : '#7a6fa0'}`,
+                  borderRadius:  6,
+                  padding:      '10px 12px',
+                  fontFamily:   "'Fredoka'",
+                  fontSize:      12,
+                  color:        '#2d2b3d',
+                  lineHeight:    1.8,
+                  cursor:       'pointer',
+                }}
+              >
                 {s.favourite && <span style={{ marginRight: 6 }}>♥</span>}
                 {s.message.length > 80 ? s.message.slice(0, 80) + '…' : s.message}
               </div>
             ))}
-            {linkedStars.length > 5 && (
-              <div style={{ fontFamily: "'Fredoka'", fontSize: 12, color: '#9b89c4', textAlign: 'center', marginTop: 4 }}>
-                + {linkedStars.length - 5} more
-              </div>
-            )}
           </div>
         ) : (
           <div style={{ fontFamily: "'Fredoka'", fontSize: 12, color: '#9b89c4', lineHeight: 2, marginBottom: 24 }}>
@@ -253,6 +254,24 @@ function PersonProfile({ person, stars, onClose, onUpdate, onDelete }) {
           </PixelButton>
         )}
       </div>
+
+      {expandedStar && (
+        <StarExpandModal
+          star={expandedStar}
+          people={window.store.people}
+          onClose={() => setExpandedStar(null)}
+          onToggleFavourite={(id, fav) => {
+            window.store.updateStar(id, { favourite: fav });
+            setExpandedStar(s => ({ ...s, favourite: fav }));
+            onUpdate();
+          }}
+          onDelete={id => {
+            window.store.deleteStar(id);
+            setExpandedStar(null);
+            onUpdate();
+          }}
+        />
+      )}
     </ModalOverlay>
   );
 }
