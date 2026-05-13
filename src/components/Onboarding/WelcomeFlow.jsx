@@ -165,12 +165,12 @@ function OnboardingFlow({ onComplete }) {
               marginTop:    20,
               padding:      '10px 14px',
               background:   'rgba(22,33,62,0.6)',
-              border:       '1.5px solid #4a3f6e',
+              border:       '1.5px solid #7a6fa0',
               borderRadius:  8,
               textAlign:    'center',
               animation:    'fadeIn 0.6s ease 1.2s both',
             }}>
-              <span style={{ fontFamily: "'Fredoka'", fontSize: 12, color: '#7a6fa0', lineHeight: 1.8 }}>
+              <span style={{ fontFamily: "'Fredoka'", fontSize: 12, color: '#b8aed4', lineHeight: 1.8 }}>
                 🔒 All data is protected by you and stored locally — no one other than yourself (and whoever is looking over your shoulder) will see these twinkling stars.
               </span>
             </div>
