@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark navy background with rounded corners -->
+  <rect width="32" height="32" rx="7" fill="#1a1a2e"/>
+
+  <!-- Tiny background stars -->
+  <rect x="5"  y="6"  width="1.5" height="1.5" fill="#c9b8f0" opacity="0.5"/>
+  <rect x="24" y="5"  width="1.5" height="1.5" fill="#c9b8f0" opacity="0.4"/>
+  <rect x="27" y="20" width="1.5" height="1.5" fill="#c9b8f0" opacity="0.4"/>
+  <rect x="4"  y="23" width="1.5" height="1.5" fill="#c9b8f0" opacity="0.35"/>
+
+  <!-- Star shadow (1px offset, pixel-art style) -->
+  <polygon
+    points="16,5 18.6,12.4 26.5,12.6 20.3,17.4 22.5,24.9 16,20.5 9.5,24.9 11.7,17.4 5.5,12.6 13.4,12.4"
+    fill="#c9a84c"
+    transform="translate(1,1)"
+  />
+
+  <!-- Star (butter gold from konpeito palette) -->
+  <polygon
+    points="16,5 18.6,12.4 26.5,12.6 20.3,17.4 22.5,24.9 16,20.5 9.5,24.9 11.7,17.4 5.5,12.6 13.4,12.4"
+    fill="#ffe4a0"
+  />
+
+  <!-- Highlight pixel top-left of star -->
+  <rect x="14" y="7" width="2" height="2" fill="#fdfcff" opacity="0.6"/>
+</svg>
